@@ -1,0 +1,40 @@
+<div class="player-page">
+    <div class="player-header">
+        <button class="btn btn-ghost btn-sm" (click)="goBack()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Back to Dashboard
+        </button>
+
+        @if (video) {
+        <h1 class="player-title animate-fade-in">{{ video.title }}</h1>
+        }
+    </div>
+
+    <div class="player-container animate-fade-in-up">
+        @if (streamUrl) {
+        <video class="video-player" [src]="streamUrl" controls autoplay preload="auto">
+            Your browser does not support the video element.
+        </video>
+        }
+    </div>
+
+    @if (video) {
+    <div class="player-info animate-fade-in-up" style="animation-delay: 0.1s">
+        <div class="info-item">
+            <span class="info-label">Type</span>
+            <span class="info-value">{{ video.contentType }}</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Size</span>
+            <span class="info-value">{{ formatSize(video.size) }}</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Uploaded</span>
+            <span class="info-value">{{ formatDate(video.uploadDate) }}</span>
+        </div>
+    </div>
+    }
+</div>

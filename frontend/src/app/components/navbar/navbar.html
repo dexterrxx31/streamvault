@@ -1,0 +1,24 @@
+<nav class="navbar">
+    <a routerLink="/" class="nav-logo">
+        Stream<span class="text-gradient">Vault</span>
+    </a>
+
+    <div class="nav-right">
+        @if (user) {
+            <div class="nav-user">
+                <div class="nav-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+                <span class="nav-username">{{ user.username }}</span>
+            </div>
+            <button class="btn btn-ghost btn-sm" (click)="logout()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+                </svg>
+                Logout
+            </button>
+        } @else {
+            <a routerLink="/login" class="btn btn-ghost btn-sm">Log In</a>
+            <a routerLink="/signup" class="btn btn-primary btn-sm">Sign Up</a>
+        }
+    </div>
+</nav>

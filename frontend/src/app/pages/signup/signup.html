@@ -1,0 +1,65 @@
+<div class="auth-page">
+    <div class="auth-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <div class="auth-container animate-fade-in-up">
+        <div class="auth-card glass-card">
+            <div class="auth-header">
+                <a routerLink="/" class="auth-logo">Stream<span class="text-gradient">Vault</span></a>
+                <h2>Create Account</h2>
+                <p>Start your streaming journey</p>
+            </div>
+
+            @if (error) {
+            <div class="auth-error animate-slide-down">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M15 9l-6 6M9 9l6 6" />
+                </svg>
+                {{ error }}
+            </div>
+            }
+
+            <form (ngSubmit)="onSubmit()" class="auth-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input id="username" type="text" class="form-input" placeholder="Choose a username"
+                        [(ngModel)]="username" name="username" />
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input id="email" type="email" class="form-input" placeholder="your@email.com" [(ngModel)]="email"
+                        name="email" />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" class="form-input" placeholder="At least 6 characters"
+                        [(ngModel)]="password" name="password" />
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input id="confirmPassword" type="password" class="form-input" placeholder="Repeat your password"
+                        [(ngModel)]="confirmPassword" name="confirmPassword" />
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg auth-submit" [disabled]="loading">
+                    @if (loading) {
+                    <span class="spinner"></span>
+                    Creating account...
+                    } @else {
+                    Create Account
+                    }
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Already have an account? <a routerLink="/login">Sign in</a>
+            </div>
+        </div>
+    </div>
+</div>

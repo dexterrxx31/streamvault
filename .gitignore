@@ -1,0 +1,37 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Angular
+.angular/
+dist/
+out-tsc/
+bazel-out/
+coverage/
+
+# Maven/Java
+target/
+*.class
+*.log
+*.sh
+!mvnw
+
+# Local Uploads
+backend/uploads/
+uploads/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Misc
+*.lock
+testem.log
+.c9/
+*.launch
+.settings/
+*.sublime-workspace

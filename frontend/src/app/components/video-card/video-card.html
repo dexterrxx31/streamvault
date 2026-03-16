@@ -1,0 +1,34 @@
+<div class="video-card glass-card" (click)="onPlay()">
+    <div class="card-thumbnail">
+        <div class="thumbnail-placeholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+        </div>
+        <div class="card-overlay">
+            <div class="play-btn">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-info">
+        <h3 class="card-title">{{ video.title }}</h3>
+        <div class="card-meta">
+            <span>{{ formatSize(video.size) }}</span>
+            <span class="meta-dot">·</span>
+            <span>{{ formatDate(video.uploadDate) }}</span>
+        </div>
+    </div>
+
+    <button class="card-delete" (click)="onDelete($event)" title="Delete video">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+        </svg>
+    </button>
+</div>
