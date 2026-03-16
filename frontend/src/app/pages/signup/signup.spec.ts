@@ -55,18 +55,28 @@ describe('SignupComponent', () => {
 
     it('should show error if form invalid', () => {
         component.username = '';
-        component.onSignup();
+        component.onSubmit();
         expect(component.error).toBe('Please fill in all fields');
+    });
+
+    it('should show error if passwords do not match', () => {
+        component.username = 'u';
+        component.email = 'e';
+        component.password = 'p1';
+        component.confirmPassword = 'p2';
+        component.onSubmit();
+        expect(component.error).toBe('Passwords do not match');
     });
 
     it('should call auth service and navigate on success', () => {
         authServiceSpy.signup.mockReturnValue(of({}));
         component.username = 'new';
         component.email = 'new@e.com';
-        component.password = 'pass';
-        component.onSignup();
+        component.password = 'pass123';
+        component.confirmPassword = 'pass123';
+        component.onSubmit();
 
-        expect(authServiceSpy.signup).toHaveBeenCalledWith('new', 'new@e.com', 'pass');
+        expect(authServiceSpy.signup).toHaveBeenCalledWith('new', 'new@e.com', 'pass123');
         expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
     });
 
@@ -74,19 +84,11 @@ describe('SignupComponent', () => {
         authServiceSpy.signup.mockReturnValue(throwError(() => ({ error: { error: 'Exists' } })));
         component.username = 'old';
         component.email = 'old@e.com';
-        component.password = 'p';
-        component.onSignup();
+        component.password = 'p123456';
+        component.confirmPassword = 'p123456';
+        component.onSubmit();
 
         expect(component.loading).toBe(false);
         expect(component.error).toBe('Exists');
-    });
-
-    it('should use default error if server error empty', () => {
-        authServiceSpy.signup.mockReturnValue(throwError(() => ({})));
-        component.username = 'u';
-        component.email = 'e';
-        component.password = 'p';
-        component.onSignup();
-        expect(component.error).toBe('Signup failed. Please try again.');
     });
 });

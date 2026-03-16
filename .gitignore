@@ -12,6 +12,7 @@ coverage/
 
 # Maven/Java
 target/
+.mvn/maven/
 *.class
 *.log
 *.sh

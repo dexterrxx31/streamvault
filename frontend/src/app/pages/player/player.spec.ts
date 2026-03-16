@@ -30,13 +30,14 @@ describe('PlayerComponent', () => {
 
     beforeEach(async () => {
         videoServiceSpy = {
-            getVideoById: vi.fn().mockReturnValue(of({
+            getVideoById: vi.fn(),
+            getUserVideos: vi.fn().mockReturnValue(of([{
                 id: 1,
                 title: 'Test Video',
                 contentType: 'video/mp4',
                 size: 1024,
                 uploadDate: '2024-03-15'
-            })),
+            }])),
             getStreamUrl: vi.fn().mockReturnValue('http://stream/1')
         };
 
@@ -45,11 +46,7 @@ describe('PlayerComponent', () => {
         };
 
         routeSpy = {
-            snapshot: {
-                paramMap: {
-                    get: vi.fn().mockReturnValue('1')
-                }
-            }
+            params: of({ id: '1' })
         };
 
         await TestBed.configureTestingModule({
@@ -68,9 +65,9 @@ describe('PlayerComponent', () => {
     it('should create and load video info', () => {
         fixture.detectChanges();
         expect(component).toBeTruthy();
-        expect(videoServiceSpy.getVideoById).toHaveBeenCalledWith(1);
+        expect(component.videoId).toBe(1);
         expect(component.video?.title).toBe('Test Video');
-        expect(component.videoUrl).toBe('http://stream/1');
+        expect(component.streamUrl).toBe('http://stream/1');
     });
 
     it('should navigate back to dashboard', () => {

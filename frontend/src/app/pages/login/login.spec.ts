@@ -55,15 +55,15 @@ describe('LoginComponent', () => {
 
     it('should show error if form invalid', () => {
         component.username = '';
-        component.onLogin();
-        expect(component.error).toBe('Please enter all fields');
+        component.onSubmit();
+        expect(component.error).toBe('Please fill in all fields');
     });
 
     it('should call auth service and navigate on success', () => {
         authServiceSpy.login.mockReturnValue(of({}));
         component.username = 'test';
         component.password = 'pass';
-        component.onLogin();
+        component.onSubmit();
 
         expect(authServiceSpy.login).toHaveBeenCalledWith('test', 'pass');
         expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
@@ -73,7 +73,7 @@ describe('LoginComponent', () => {
         authServiceSpy.login.mockReturnValue(throwError(() => ({ error: { error: 'Invalid' } })));
         component.username = 'test';
         component.password = 'pass';
-        component.onLogin();
+        component.onSubmit();
 
         expect(component.loading).toBe(false);
         expect(component.error).toBe('Invalid');
@@ -83,7 +83,7 @@ describe('LoginComponent', () => {
         authServiceSpy.login.mockReturnValue(throwError(() => ({})));
         component.username = 'test';
         component.password = 'pass';
-        component.onLogin();
+        component.onSubmit();
         expect(component.error).toBe('Login failed. Please try again.');
     });
 });
