@@ -4,6 +4,18 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
 
 ---
 
+## 📸 Screenshots
+
+| Landing Page | Dashboard |
+| :---: | :---: |
+| ![Landing Page](./screenshots/landing.png) | ![Dashboard](./screenshots/dashboard.png) |
+
+| Video Player |
+| :---: |
+| ![Video Player](./screenshots/player.png) |
+
+---
+
 ## 🚀 Key Features
 
 ### 🔐 Secure Authentication

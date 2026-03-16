@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'zone.js';
 import 'zone.js/testing';
 import { TestBed, getTestBed } from '@angular/core/testing';
@@ -14,7 +15,7 @@ try {
     );
 } catch (e) { }
 
-import { ComponentFixture, fakeAsync, tick } from '@angular/core/testing';
+import { ComponentFixture } from '@angular/core/testing';
 import { DashboardComponent } from './dashboard';
 import { VideoService } from '../../services/video.service';
 import { Router } from '@angular/router';

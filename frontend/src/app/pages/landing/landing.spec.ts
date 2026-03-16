@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach } from 'vitest';
 import 'zone.js';
 import 'zone.js/testing';
 import { TestBed, getTestBed } from '@angular/core/testing';
@@ -37,8 +38,8 @@ describe('LandingComponent', () => {
         expect(component).toBeTruthy();
     });
 
-    it('should render welcome message', () => {
-        const compiled = fixture.nativeElement;
-        expect(compiled.querySelector('h1').textContent).toContain('StreamVault');
+    it('should render welcome title', () => {
+        const compiled = fixture.nativeElement as HTMLElement;
+        expect(compiled.querySelector('h1')?.textContent).toContain('StreamVault');
     });
 });

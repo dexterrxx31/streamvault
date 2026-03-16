@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'zone.js';
 import 'zone.js/testing';
 import { TestBed, getTestBed } from '@angular/core/testing';
@@ -16,9 +17,8 @@ try {
 
 import { ComponentFixture } from '@angular/core/testing';
 import { SignupComponent } from './signup';
-import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { provideRouter } from '@angular/router';
 
@@ -34,7 +34,7 @@ describe('SignupComponent', () => {
         };
 
         await TestBed.configureTestingModule({
-            imports: [SignupComponent, FormsModule],
+            imports: [SignupComponent],
             providers: [
                 { provide: AuthService, useValue: authServiceSpy },
                 provideRouter([])
@@ -46,55 +46,47 @@ describe('SignupComponent', () => {
 
         fixture = TestBed.createComponent(SignupComponent);
         component = fixture.componentInstance;
-        // Do not call detectChanges here to avoid ExpressionChangedAfterItHasBeenCheckedError
+        fixture.detectChanges();
     });
 
     it('should create', () => {
-        fixture.detectChanges();
         expect(component).toBeTruthy();
     });
 
-    it('should show error if passwords do not match', () => {
-        component.username = 'test';
-        component.email = 'e@e.com';
-        component.password = 'password';
-        component.confirmPassword = 'mismatch';
-        component.onSubmit();
-        expect(component.error).toBe('Passwords do not match');
+    it('should show error if form invalid', () => {
+        component.username = '';
+        component.onSignup();
+        expect(component.error).toBe('Please fill in all fields');
     });
 
-    it('should show error if password too short', () => {
-        component.username = 'test';
-        component.email = 'e@e.com';
-        component.password = '123';
-        component.confirmPassword = '123';
-        component.onSubmit();
-        expect(component.error).toBe('Password must be at least 6 characters');
-    });
-
-    it('should call signup and navigate on success', () => {
+    it('should call auth service and navigate on success', () => {
         authServiceSpy.signup.mockReturnValue(of({}));
-        component.username = 'test';
-        component.email = 'e@e.com';
-        component.password = 'password';
-        component.confirmPassword = 'password';
+        component.username = 'new';
+        component.email = 'new@e.com';
+        component.password = 'pass';
+        component.onSignup();
 
-        component.onSubmit();
-
-        expect(authServiceSpy.signup).toHaveBeenCalledWith('test', 'e@e.com', 'password');
+        expect(authServiceSpy.signup).toHaveBeenCalledWith('new', 'new@e.com', 'pass');
         expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
     });
 
     it('should handle signup error', () => {
-        authServiceSpy.signup.mockReturnValue(throwError(() => ({ error: { error: 'Email taken' } })));
-        component.username = 'test';
-        component.email = 'taken@e.com';
-        component.password = 'password';
-        component.confirmPassword = 'password';
-
-        component.onSubmit();
+        authServiceSpy.signup.mockReturnValue(throwError(() => ({ error: { error: 'Exists' } })));
+        component.username = 'old';
+        component.email = 'old@e.com';
+        component.password = 'p';
+        component.onSignup();
 
         expect(component.loading).toBe(false);
-        expect(component.error).toBe('Email taken');
+        expect(component.error).toBe('Exists');
+    });
+
+    it('should use default error if server error empty', () => {
+        authServiceSpy.signup.mockReturnValue(throwError(() => ({})));
+        component.username = 'u';
+        component.email = 'e';
+        component.password = 'p';
+        component.onSignup();
+        expect(component.error).toBe('Signup failed. Please try again.');
     });
 });

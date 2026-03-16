@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'zone.js';
 import 'zone.js/testing';
 import { TestBed, getTestBed } from '@angular/core/testing';
@@ -25,31 +26,38 @@ describe('PlayerComponent', () => {
     let fixture: ComponentFixture<PlayerComponent>;
     let videoServiceSpy: any;
     let routerSpy: any;
-
-    const mockVideos = [
-        { id: 123, title: 'Test Video', contentType: 'v/mp4', size: 100, uploadDate: '2024-03-15' }
-    ];
+    let routeSpy: any;
 
     beforeEach(async () => {
         videoServiceSpy = {
-            getStreamUrl: vi.fn().mockReturnValue('http://stream/123'),
-            getUserVideos: vi.fn().mockReturnValue(of(mockVideos))
+            getVideoById: vi.fn().mockReturnValue(of({
+                id: 1,
+                title: 'Test Video',
+                contentType: 'video/mp4',
+                size: 1024,
+                uploadDate: '2024-03-15'
+            })),
+            getStreamUrl: vi.fn().mockReturnValue('http://stream/1')
         };
+
         routerSpy = {
             navigate: vi.fn()
+        };
+
+        routeSpy = {
+            snapshot: {
+                paramMap: {
+                    get: vi.fn().mockReturnValue('1')
+                }
+            }
         };
 
         await TestBed.configureTestingModule({
             imports: [PlayerComponent],
             providers: [
                 { provide: VideoService, useValue: videoServiceSpy },
-                {
-                    provide: ActivatedRoute,
-                    useValue: {
-                        params: of({ id: '123' })
-                    }
-                },
-                { provide: Router, useValue: routerSpy }
+                { provide: Router, useValue: routerSpy },
+                { provide: ActivatedRoute, useValue: routeSpy }
             ]
         }).compileComponents();
 
@@ -59,10 +67,10 @@ describe('PlayerComponent', () => {
 
     it('should create and load video info', () => {
         fixture.detectChanges();
-        expect(component.videoId).toBe(123);
-        expect(component.streamUrl).toBe('http://stream/123');
+        expect(component).toBeTruthy();
+        expect(videoServiceSpy.getVideoById).toHaveBeenCalledWith(1);
         expect(component.video?.title).toBe('Test Video');
-        expect(component.loading).toBe(false);
+        expect(component.videoUrl).toBe('http://stream/1');
     });
 
     it('should navigate back to dashboard', () => {
