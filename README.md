@@ -92,6 +92,7 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
 - **Java**: JDK 17+
 - **Maven**: 3.8+
 - **FFmpeg**: `ffmpeg` + `ffprobe` on PATH (`brew install ffmpeg`) — used for video metadata and thumbnail generation. If missing, uploads still work but are marked `FAILED` after processing.
+- **Docker**: for the PostgreSQL database (`docker compose up -d`). Data persists across restarts in a named volume.
 
 ### Quick Start
 
@@ -101,13 +102,18 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
     cd streamvault
     ```
 
-2.  **Launch Backend**
+2.  **Start PostgreSQL**
+    ```bash
+    docker compose up -d
+    ```
+
+3.  **Launch Backend**
     ```bash
     cd backend
     ./mvnw spring-boot:run
     ```
 
-3.  **Launch Frontend**
+4.  **Launch Frontend**
     ```bash
     cd ../frontend
     npm install
