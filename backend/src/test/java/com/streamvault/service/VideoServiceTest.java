@@ -387,6 +387,26 @@ class VideoServiceTest {
         }
 
         @Test
+        @DisplayName("Should clear AI suggestions on any update")
+        void updateVideo_clearsAiSuggestions() {
+            Video video = Video.builder()
+                    .id(1L).title("Old").filename("v.mp4")
+                    .contentType("video/mp4").size(100L)
+                    .aiTitle("AI Title").aiDescription("AI Desc").aiTags("x,y")
+                    .uploadDate(LocalDateTime.now()).user(testUser).build();
+
+            when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
+            when(videoRepository.save(any(Video.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            VideoResponse response = videoService.updateVideo(1L, 1L, null, null, null);
+
+            assertNull(response.getAiTitle());
+            assertNull(response.getAiDescription());
+            assertTrue(response.getAiTags().isEmpty());
+            assertEquals("Old", response.getTitle());
+        }
+
+        @Test
         @DisplayName("Should keep existing title when new title is blank")
         void updateVideo_blankTitleIgnored() {
             Video video = Video.builder()

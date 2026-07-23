@@ -17,6 +17,9 @@ export interface VideoInfo {
     tags: string[];
     status: VideoStatus;
     hasThumbnail: boolean;
+    aiTitle: string | null;
+    aiDescription: string | null;
+    aiTags: string[];
 }
 
 export interface UpdateVideoPayload {

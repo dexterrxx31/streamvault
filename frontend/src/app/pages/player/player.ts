@@ -15,6 +15,7 @@ export class PlayerComponent implements OnInit {
     streamUrl: string = '';
     video: VideoInfo | null = null;
     loading = true;
+    suggestionBusy = false;
 
     constructor(
         private route: ActivatedRoute,
@@ -27,6 +28,43 @@ export class PlayerComponent implements OnInit {
             this.videoId = +params['id'];
             this.streamUrl = this.videoService.getStreamUrl(this.videoId);
             this.loadVideoInfo();
+        });
+    }
+
+    get hasSuggestions(): boolean {
+        return !!(this.video && (this.video.aiTitle || this.video.aiDescription || this.video.aiTags.length));
+    }
+
+    acceptSuggestions(): void {
+        if (!this.video) return;
+        this.suggestionBusy = true;
+        this.videoService.updateVideo(this.videoId, {
+            title: this.video.aiTitle ?? undefined,
+            description: this.video.aiDescription ?? undefined,
+            tags: this.video.aiTags.length ? this.video.aiTags : undefined,
+        }).subscribe({
+            next: (video) => {
+                this.video = video;
+                this.suggestionBusy = false;
+            },
+            error: () => {
+                this.suggestionBusy = false;
+            }
+        });
+    }
+
+    dismissSuggestions(): void {
+        if (!this.video) return;
+        this.suggestionBusy = true;
+        // An empty update keeps current metadata but resolves the suggestions
+        this.videoService.updateVideo(this.videoId, {}).subscribe({
+            next: (video) => {
+                this.video = video;
+                this.suggestionBusy = false;
+            },
+            error: () => {
+                this.suggestionBusy = false;
+            }
         });
     }
 

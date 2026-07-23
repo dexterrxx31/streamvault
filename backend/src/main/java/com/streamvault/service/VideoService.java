@@ -110,6 +110,10 @@ public class VideoService {
         if (tags != null) {
             video.setTags(tags);
         }
+        // Any update (accept, edit, or dismiss) resolves the AI suggestions
+        video.setAiTitle(null);
+        video.setAiDescription(null);
+        video.setAiTags(null);
         return toResponse(videoRepository.save(video));
     }
 
@@ -183,6 +187,11 @@ public class VideoService {
                 .tags(video.getTags())
                 .status(video.getStatus())
                 .hasThumbnail(video.getThumbnailFilename() != null)
+                .aiTitle(video.getAiTitle())
+                .aiDescription(video.getAiDescription())
+                .aiTags(video.getAiTags() != null
+                        ? List.of(video.getAiTags().split(","))
+                        : List.of())
                 .build();
     }
 }

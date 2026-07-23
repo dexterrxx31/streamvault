@@ -19,13 +19,16 @@ public class VideoResponse {
     private List<String> tags = new ArrayList<>();
     private VideoStatus status;
     private boolean hasThumbnail;
+    private String aiTitle;
+    private String aiDescription;
+    private List<String> aiTags = new ArrayList<>();
 
     public VideoResponse() {
     }
 
     public VideoResponse(Long id, String title, String contentType, Long size, LocalDateTime uploadDate,
             Double durationSeconds, Integer width, Integer height, String description, List<String> tags,
-            VideoStatus status, boolean hasThumbnail) {
+            VideoStatus status, boolean hasThumbnail, String aiTitle, String aiDescription, List<String> aiTags) {
         this.id = id;
         this.title = title;
         this.contentType = contentType;
@@ -38,6 +41,9 @@ public class VideoResponse {
         this.tags = tags != null ? tags : new ArrayList<>();
         this.status = status;
         this.hasThumbnail = hasThumbnail;
+        this.aiTitle = aiTitle;
+        this.aiDescription = aiDescription;
+        this.aiTags = aiTags != null ? aiTags : new ArrayList<>();
     }
 
     public Long getId() {
@@ -136,6 +142,30 @@ public class VideoResponse {
         this.hasThumbnail = hasThumbnail;
     }
 
+    public String getAiTitle() {
+        return aiTitle;
+    }
+
+    public void setAiTitle(String aiTitle) {
+        this.aiTitle = aiTitle;
+    }
+
+    public String getAiDescription() {
+        return aiDescription;
+    }
+
+    public void setAiDescription(String aiDescription) {
+        this.aiDescription = aiDescription;
+    }
+
+    public List<String> getAiTags() {
+        return aiTags;
+    }
+
+    public void setAiTags(List<String> aiTags) {
+        this.aiTags = aiTags;
+    }
+
     public static VideoResponseBuilder builder() {
         return new VideoResponseBuilder();
     }
@@ -153,6 +183,9 @@ public class VideoResponse {
         private List<String> tags;
         private VideoStatus status;
         private boolean hasThumbnail;
+        private String aiTitle;
+        private String aiDescription;
+        private List<String> aiTags;
 
         public VideoResponseBuilder id(Long id) {
             this.id = id;
@@ -214,9 +247,24 @@ public class VideoResponse {
             return this;
         }
 
+        public VideoResponseBuilder aiTitle(String aiTitle) {
+            this.aiTitle = aiTitle;
+            return this;
+        }
+
+        public VideoResponseBuilder aiDescription(String aiDescription) {
+            this.aiDescription = aiDescription;
+            return this;
+        }
+
+        public VideoResponseBuilder aiTags(List<String> aiTags) {
+            this.aiTags = aiTags;
+            return this;
+        }
+
         public VideoResponse build() {
             return new VideoResponse(id, title, contentType, size, uploadDate, durationSeconds, width, height,
-                    description, tags, status, hasThumbnail);
+                    description, tags, status, hasThumbnail, aiTitle, aiDescription, aiTags);
         }
     }
 }

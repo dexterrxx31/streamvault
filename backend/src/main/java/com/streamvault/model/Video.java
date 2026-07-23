@@ -47,6 +47,15 @@ public class Video {
 
     private String thumbnailFilename;
 
+    // AI-suggested metadata — ephemeral until the user accepts or dismisses
+    private String aiTitle;
+
+    @Column(columnDefinition = "TEXT")
+    private String aiDescription;
+
+    @Column(columnDefinition = "TEXT")
+    private String aiTags;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -64,7 +73,8 @@ public class Video {
 
     public Video(Long id, String title, String filename, String contentType, Long size, LocalDateTime uploadDate,
             Double durationSeconds, Integer width, Integer height, String description, List<String> tags,
-            VideoStatus status, String thumbnailFilename, User user) {
+            VideoStatus status, String thumbnailFilename, String aiTitle, String aiDescription, String aiTags,
+            User user) {
         this.id = id;
         this.title = title;
         this.filename = filename;
@@ -78,6 +88,9 @@ public class Video {
         this.tags = tags != null ? tags : new ArrayList<>();
         this.status = status;
         this.thumbnailFilename = thumbnailFilename;
+        this.aiTitle = aiTitle;
+        this.aiDescription = aiDescription;
+        this.aiTags = aiTags;
         this.user = user;
     }
 
@@ -185,6 +198,30 @@ public class Video {
         this.thumbnailFilename = thumbnailFilename;
     }
 
+    public String getAiTitle() {
+        return aiTitle;
+    }
+
+    public void setAiTitle(String aiTitle) {
+        this.aiTitle = aiTitle;
+    }
+
+    public String getAiDescription() {
+        return aiDescription;
+    }
+
+    public void setAiDescription(String aiDescription) {
+        this.aiDescription = aiDescription;
+    }
+
+    public String getAiTags() {
+        return aiTags;
+    }
+
+    public void setAiTags(String aiTags) {
+        this.aiTags = aiTags;
+    }
+
     public User getUser() {
         return user;
     }
@@ -211,6 +248,9 @@ public class Video {
         private List<String> tags;
         private VideoStatus status;
         private String thumbnailFilename;
+        private String aiTitle;
+        private String aiDescription;
+        private String aiTags;
         private User user;
 
         public VideoBuilder id(Long id) {
@@ -278,6 +318,21 @@ public class Video {
             return this;
         }
 
+        public VideoBuilder aiTitle(String aiTitle) {
+            this.aiTitle = aiTitle;
+            return this;
+        }
+
+        public VideoBuilder aiDescription(String aiDescription) {
+            this.aiDescription = aiDescription;
+            return this;
+        }
+
+        public VideoBuilder aiTags(String aiTags) {
+            this.aiTags = aiTags;
+            return this;
+        }
+
         public VideoBuilder user(User user) {
             this.user = user;
             return this;
@@ -285,7 +340,7 @@ public class Video {
 
         public Video build() {
             return new Video(id, title, filename, contentType, size, uploadDate, durationSeconds, width, height,
-                    description, tags, status, thumbnailFilename, user);
+                    description, tags, status, thumbnailFilename, aiTitle, aiDescription, aiTags, user);
         }
     }
 }

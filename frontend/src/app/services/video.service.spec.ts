@@ -33,6 +33,9 @@ function makeVideo(overrides: Partial<VideoInfo> = {}): VideoInfo {
         tags: [],
         status: 'READY',
         hasThumbnail: true,
+        aiTitle: null,
+        aiDescription: null,
+        aiTags: [],
         ...overrides,
     };
 }

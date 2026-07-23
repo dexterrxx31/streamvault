@@ -21,6 +21,45 @@
         }
     </div>
 
+    @if (hasSuggestions) {
+    <div class="ai-suggestions glass-card animate-fade-in-up">
+        <div class="ai-suggestions-header">
+            <span class="ai-badge">✨ AI Suggestions</span>
+            <span class="ai-hint">Claude analyzed your video and suggests:</span>
+        </div>
+        @if (video!.aiTitle) {
+        <div class="ai-field">
+            <span class="ai-label">Title</span>
+            <span class="ai-value">{{ video!.aiTitle }}</span>
+        </div>
+        }
+        @if (video!.aiDescription) {
+        <div class="ai-field">
+            <span class="ai-label">Description</span>
+            <span class="ai-value">{{ video!.aiDescription }}</span>
+        </div>
+        }
+        @if (video!.aiTags.length) {
+        <div class="ai-field">
+            <span class="ai-label">Tags</span>
+            <span class="ai-tags">
+                @for (tag of video!.aiTags; track tag) {
+                <span class="ai-tag">{{ tag }}</span>
+                }
+            </span>
+        </div>
+        }
+        <div class="ai-actions">
+            <button class="btn btn-primary btn-sm" [disabled]="suggestionBusy" (click)="acceptSuggestions()">
+                Accept
+            </button>
+            <button class="btn btn-ghost btn-sm" [disabled]="suggestionBusy" (click)="dismissSuggestions()">
+                Dismiss
+            </button>
+        </div>
+    </div>
+    }
+
     @if (video) {
     <div class="player-info animate-fade-in-up" style="animation-delay: 0.1s">
         <div class="info-item">
@@ -35,6 +74,22 @@
             <span class="info-label">Uploaded</span>
             <span class="info-value">{{ formatDate(video.uploadDate) }}</span>
         </div>
+        @if (video.description) {
+        <div class="info-item info-item-wide">
+            <span class="info-label">Description</span>
+            <span class="info-value">{{ video.description }}</span>
+        </div>
+        }
+        @if (video.tags.length) {
+        <div class="info-item info-item-wide">
+            <span class="info-label">Tags</span>
+            <span class="ai-tags">
+                @for (tag of video.tags; track tag) {
+                <span class="ai-tag">{{ tag }}</span>
+                }
+            </span>
+        </div>
+        }
     </div>
     }
 </div>
