@@ -75,10 +75,13 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
 - `GET /me`: Retrieve current user context.
 
 #### Video Management (`/api/videos`)
-- `POST /upload`: Upload a video (Multipart).
+- `POST /upload`: Upload a video (Multipart). Kicks off async processing (metadata + thumbnails).
 - `GET /`: List all videos for the authenticated user.
-- `DELETE /{id}`: Remove a video file and its metadata.
-- `GET /stream/{id}`: Byte-range streaming endpoint.
+- `GET /{id}`: Fetch a single video's metadata (owner only).
+- `PUT /{id}`: Update title, description, and tags (owner only).
+- `DELETE /{id}`: Remove a video file, its thumbnail/frames, and metadata.
+- `GET /stream/{id}`: Byte-range streaming endpoint (memory-efficient `ResourceRegion`).
+- `GET /{id}/thumbnail`: Auto-generated poster thumbnail (public, like `/stream`).
 
 ---
 
@@ -88,6 +91,7 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
 - **Node.js**: v18+
 - **Java**: JDK 17+
 - **Maven**: 3.8+
+- **FFmpeg**: `ffmpeg` + `ffprobe` on PATH (`brew install ffmpeg`) — used for video metadata and thumbnail generation. If missing, uploads still work but are marked `FAILED` after processing.
 
 ### Quick Start
 

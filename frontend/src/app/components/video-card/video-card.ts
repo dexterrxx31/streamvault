@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { VideoInfo } from '../../services/video.service';
+import { VideoInfo, VideoService } from '../../services/video.service';
 
 @Component({
     selector: 'app-video-card',
@@ -13,6 +13,22 @@ export class VideoCardComponent {
     @Input() video!: VideoInfo;
     @Output() play = new EventEmitter<number>();
     @Output() delete = new EventEmitter<number>();
+
+    thumbnailFailed = false;
+
+    constructor(private videoService: VideoService) { }
+
+    get showThumbnail(): boolean {
+        return this.video.status === 'READY' && this.video.hasThumbnail && !this.thumbnailFailed;
+    }
+
+    get thumbnailUrl(): string {
+        return this.videoService.getThumbnailUrl(this.video.id);
+    }
+
+    onThumbnailError(): void {
+        this.thumbnailFailed = true;
+    }
 
     onPlay(): void {
         this.play.emit(this.video.id);
@@ -34,5 +50,14 @@ export class VideoCardComponent {
     formatDate(dateStr: string): string {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    formatDuration(seconds: number): string {
+        const total = Math.round(seconds);
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
     }
 }

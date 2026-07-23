@@ -2,12 +2,27 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpEvent, HttpEventType, HttpRequest } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 
+export type VideoStatus = 'PROCESSING' | 'READY' | 'FAILED';
+
 export interface VideoInfo {
     id: number;
     title: string;
     contentType: string;
     size: number;
     uploadDate: string;
+    durationSeconds: number | null;
+    width: number | null;
+    height: number | null;
+    description: string | null;
+    tags: string[];
+    status: VideoStatus;
+    hasThumbnail: boolean;
+}
+
+export interface UpdateVideoPayload {
+    title?: string;
+    description?: string;
+    tags?: string[];
 }
 
 export interface UploadProgress {
@@ -24,6 +39,14 @@ export class VideoService {
 
     getUserVideos(): Observable<VideoInfo[]> {
         return this.http.get<VideoInfo[]>(this.API_URL);
+    }
+
+    getVideo(id: number): Observable<VideoInfo> {
+        return this.http.get<VideoInfo>(`${this.API_URL}/${id}`);
+    }
+
+    updateVideo(id: number, payload: UpdateVideoPayload): Observable<VideoInfo> {
+        return this.http.put<VideoInfo>(`${this.API_URL}/${id}`, payload);
     }
 
     uploadVideo(file: File, title: string): Observable<UploadProgress> {
@@ -58,5 +81,9 @@ export class VideoService {
 
     getStreamUrl(id: number): string {
         return `${this.API_URL}/stream/${id}`;
+    }
+
+    getThumbnailUrl(id: number): string {
+        return `${this.API_URL}/${id}/thumbnail`;
     }
 }

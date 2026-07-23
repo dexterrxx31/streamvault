@@ -2,6 +2,7 @@ package com.streamvault.config;
 
 import com.streamvault.security.JwtFilter;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -34,7 +35,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        // stream + thumbnail are public because <video>/<img> tags
+                        // cannot send Authorization headers (same accepted tradeoff)
                         .requestMatchers("/api/videos/stream/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/videos/*/thumbnail").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

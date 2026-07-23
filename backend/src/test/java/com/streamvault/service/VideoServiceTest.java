@@ -4,12 +4,14 @@ import com.streamvault.dto.VideoResponse;
 import com.streamvault.model.User;
 import com.streamvault.model.Video;
 import com.streamvault.repository.VideoRepository;
+import com.streamvault.service.processing.VideoUploadedEvent;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,6 +35,9 @@ class VideoServiceTest {
 
     @Mock
     private VideoRepository videoRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private VideoService videoService;
@@ -91,6 +96,7 @@ class VideoServiceTest {
             assertEquals(1024L, response.getSize());
 
             verify(videoRepository).save(any(Video.class));
+            verify(eventPublisher).publishEvent(any(VideoUploadedEvent.class));
         }
 
         @Test
@@ -132,6 +138,7 @@ class VideoServiceTest {
                     () -> videoService.uploadVideo(file, "Fail Video", testUser));
 
             verify(videoRepository, never()).save(any());
+            verify(eventPublisher, never()).publishEvent(any());
         }
     }
 
@@ -294,6 +301,161 @@ class VideoServiceTest {
                     () -> videoService.deleteVideo(99L, 1L));
 
             verify(videoRepository, never()).delete(any());
+        }
+
+        @Test
+        @DisplayName("Should delete thumbnail and frame files with the video")
+        void deleteVideo_cleansUpDerivedFiles() throws IOException {
+            Path videoFile = tempDir.resolve("abc.mp4");
+            Path thumbFile = tempDir.resolve("abc_thumb.jpg");
+            Path frameFile = tempDir.resolve("abc_frame_1.jpg");
+            Files.write(videoFile, "content".getBytes());
+            Files.write(thumbFile, "thumb".getBytes());
+            Files.write(frameFile, "frame".getBytes());
+
+            Video video = Video.builder()
+                    .id(1L).title("Full Cleanup").filename("abc.mp4")
+                    .contentType("video/mp4").size(100L)
+                    .thumbnailFilename("abc_thumb.jpg")
+                    .uploadDate(LocalDateTime.now()).user(testUser).build();
+
+            when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
+
+            videoService.deleteVideo(1L, 1L);
+
+            assertFalse(Files.exists(videoFile));
+            assertFalse(Files.exists(thumbFile));
+            assertFalse(Files.exists(frameFile));
+        }
+    }
+
+    @Nested
+    @DisplayName("Get User Video Tests")
+    class GetUserVideoTests {
+
+        @Test
+        @DisplayName("Should return video owned by user")
+        void getUserVideo_success() {
+            Video video = Video.builder()
+                    .id(1L).title("Mine").filename("v.mp4")
+                    .contentType("video/mp4").size(100L)
+                    .uploadDate(LocalDateTime.now()).user(testUser).build();
+
+            when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
+
+            VideoResponse response = videoService.getUserVideo(1L, 1L);
+
+            assertEquals("Mine", response.getTitle());
+        }
+
+        @Test
+        @DisplayName("Should throw when video belongs to another user")
+        void getUserVideo_unauthorized() {
+            Video video = Video.builder()
+                    .id(1L).title("Not Yours").filename("v.mp4")
+                    .contentType("video/mp4").size(100L)
+                    .uploadDate(LocalDateTime.now()).user(testUser).build();
+
+            when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
+
+            RuntimeException exception = assertThrows(RuntimeException.class,
+                    () -> videoService.getUserVideo(1L, 999L));
+            assertEquals("Not authorized to view this video", exception.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("Update Video Tests")
+    class UpdateVideoTests {
+
+        @Test
+        @DisplayName("Should update title, description and tags")
+        void updateVideo_success() {
+            Video video = Video.builder()
+                    .id(1L).title("Old").filename("v.mp4")
+                    .contentType("video/mp4").size(100L)
+                    .uploadDate(LocalDateTime.now()).user(testUser).build();
+
+            when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
+            when(videoRepository.save(any(Video.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            VideoResponse response = videoService.updateVideo(1L, 1L, "New", "Desc", List.of("a", "b"));
+
+            assertEquals("New", response.getTitle());
+            assertEquals("Desc", response.getDescription());
+            assertEquals(List.of("a", "b"), response.getTags());
+        }
+
+        @Test
+        @DisplayName("Should keep existing title when new title is blank")
+        void updateVideo_blankTitleIgnored() {
+            Video video = Video.builder()
+                    .id(1L).title("Keep Me").filename("v.mp4")
+                    .contentType("video/mp4").size(100L)
+                    .uploadDate(LocalDateTime.now()).user(testUser).build();
+
+            when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
+            when(videoRepository.save(any(Video.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            VideoResponse response = videoService.updateVideo(1L, 1L, "  ", "Desc", null);
+
+            assertEquals("Keep Me", response.getTitle());
+        }
+
+        @Test
+        @DisplayName("Should throw when updating video owned by different user")
+        void updateVideo_unauthorized() {
+            Video video = Video.builder()
+                    .id(1L).title("Not Yours").filename("v.mp4")
+                    .contentType("video/mp4").size(100L)
+                    .uploadDate(LocalDateTime.now()).user(testUser).build();
+
+            when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
+
+            assertThrows(RuntimeException.class,
+                    () -> videoService.updateVideo(1L, 999L, "New", null, null));
+
+            verify(videoRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("Get Thumbnail Resource Tests")
+    class GetThumbnailResourceTests {
+
+        @Test
+        @DisplayName("Should return thumbnail resource when it exists")
+        void getThumbnailResource_success() throws IOException {
+            Path thumbFile = tempDir.resolve("v_thumb.jpg");
+            Files.write(thumbFile, "jpeg data".getBytes());
+
+            Video video = Video.builder()
+                    .id(1L).title("Test").filename("v.mp4")
+                    .contentType("video/mp4").size(100L)
+                    .thumbnailFilename("v_thumb.jpg")
+                    .uploadDate(LocalDateTime.now()).user(testUser).build();
+
+            when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
+
+            Resource resource = videoService.getThumbnailResource(1L);
+
+            assertNotNull(resource);
+            assertTrue(resource.exists());
+        }
+
+        @Test
+        @DisplayName("Should throw when video has no thumbnail yet")
+        void getThumbnailResource_noThumbnail() {
+            Video video = Video.builder()
+                    .id(1L).title("Processing").filename("v.mp4")
+                    .contentType("video/mp4").size(100L)
+                    .uploadDate(LocalDateTime.now()).user(testUser).build();
+
+            when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
+
+            RuntimeException exception = assertThrows(RuntimeException.class,
+                    () -> videoService.getThumbnailResource(1L));
+            assertEquals("Thumbnail not available", exception.getMessage());
         }
     }
 }

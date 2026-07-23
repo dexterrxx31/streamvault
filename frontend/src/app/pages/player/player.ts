@@ -31,9 +31,9 @@ export class PlayerComponent implements OnInit {
     }
 
     private loadVideoInfo(): void {
-        this.videoService.getUserVideos().subscribe({
-            next: (videos) => {
-                this.video = videos.find(v => v.id === this.videoId) || null;
+        this.videoService.getVideo(this.videoId).subscribe({
+            next: (video) => {
+                this.video = video;
                 this.loading = false;
             },
             error: () => {

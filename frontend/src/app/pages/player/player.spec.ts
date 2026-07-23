@@ -30,14 +30,20 @@ describe('PlayerComponent', () => {
 
     beforeEach(async () => {
         videoServiceSpy = {
-            getVideoById: vi.fn(),
-            getUserVideos: vi.fn().mockReturnValue(of([{
+            getVideo: vi.fn().mockReturnValue(of({
                 id: 1,
                 title: 'Test Video',
                 contentType: 'video/mp4',
                 size: 1024,
-                uploadDate: '2024-03-15'
-            }])),
+                uploadDate: '2024-03-15',
+                durationSeconds: 120,
+                width: 1920,
+                height: 1080,
+                description: null,
+                tags: [],
+                status: 'READY',
+                hasThumbnail: true
+            })),
             getStreamUrl: vi.fn().mockReturnValue('http://stream/1')
         };
 
@@ -66,6 +72,7 @@ describe('PlayerComponent', () => {
         fixture.detectChanges();
         expect(component).toBeTruthy();
         expect(component.videoId).toBe(1);
+        expect(videoServiceSpy.getVideo).toHaveBeenCalledWith(1);
         expect(component.video?.title).toBe('Test Video');
         expect(component.streamUrl).toBe('http://stream/1');
     });

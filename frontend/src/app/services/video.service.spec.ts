@@ -19,6 +19,24 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { VideoService, VideoInfo } from './video.service';
 import { HttpEventType } from '@angular/common/http';
 
+function makeVideo(overrides: Partial<VideoInfo> = {}): VideoInfo {
+    return {
+        id: 1,
+        title: 'Video 1',
+        contentType: 'video/mp4',
+        size: 100,
+        uploadDate: '2024-01-01',
+        durationSeconds: 60,
+        width: 1920,
+        height: 1080,
+        description: null,
+        tags: [],
+        status: 'READY',
+        hasThumbnail: true,
+        ...overrides,
+    };
+}
+
 describe('VideoService', () => {
     let service: VideoService;
     let httpMock: HttpTestingController;
@@ -43,8 +61,8 @@ describe('VideoService', () => {
     describe('getUserVideos', () => {
         it('should return user videos', () => {
             const mockVideos: VideoInfo[] = [
-                { id: 1, title: 'Video 1', contentType: 'video/mp4', size: 100, uploadDate: '2024-01-01' },
-                { id: 2, title: 'Video 2', contentType: 'video/mp4', size: 200, uploadDate: '2024-01-02' }
+                makeVideo({ id: 1, title: 'Video 1' }),
+                makeVideo({ id: 2, title: 'Video 2', status: 'PROCESSING', hasThumbnail: false })
             ];
 
             service.getUserVideos().subscribe(videos => {
@@ -55,6 +73,35 @@ describe('VideoService', () => {
             const req = httpMock.expectOne('http://localhost:8080/api/videos');
             expect(req.request.method).toBe('GET');
             req.flush(mockVideos);
+        });
+    });
+
+    describe('getVideo', () => {
+        it('should return a single video', () => {
+            const mockVideo = makeVideo({ id: 5, title: 'Single' });
+
+            service.getVideo(5).subscribe(video => {
+                expect(video).toEqual(mockVideo);
+            });
+
+            const req = httpMock.expectOne('http://localhost:8080/api/videos/5');
+            expect(req.request.method).toBe('GET');
+            req.flush(mockVideo);
+        });
+    });
+
+    describe('updateVideo', () => {
+        it('should send PUT with payload', () => {
+            const updated = makeVideo({ title: 'New Title', tags: ['a'] });
+
+            service.updateVideo(1, { title: 'New Title', tags: ['a'] }).subscribe(video => {
+                expect(video.title).toBe('New Title');
+            });
+
+            const req = httpMock.expectOne('http://localhost:8080/api/videos/1');
+            expect(req.request.method).toBe('PUT');
+            expect(req.request.body).toEqual({ title: 'New Title', tags: ['a'] });
+            req.flush(updated);
         });
     });
 
@@ -75,10 +122,17 @@ describe('VideoService', () => {
         });
     });
 
+    describe('getThumbnailUrl', () => {
+        it('should return correct thumbnail URL', () => {
+            const url = service.getThumbnailUrl(5);
+            expect(url).toBe('http://localhost:8080/api/videos/5/thumbnail');
+        });
+    });
+
     describe('uploadVideo', () => {
         it('should report progress and finish', () => {
             const mockFile = new File([''], 'test.mp4', { type: 'video/mp4' });
-            const mockVideo: VideoInfo = { id: 1, title: 'Test', contentType: 'video/mp4', size: 0, uploadDate: '' };
+            const mockVideo = makeVideo({ title: 'Test', size: 0, status: 'PROCESSING', hasThumbnail: false });
 
             let states: any[] = [];
             service.uploadVideo(mockFile, 'Test').subscribe(state => states.push(state));

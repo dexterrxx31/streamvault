@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import 'zone.js';
 import 'zone.js/testing';
 import { TestBed, getTestBed } from '@angular/core/testing';
@@ -28,10 +28,13 @@ describe('DashboardComponent', () => {
     let videoServiceSpy: any;
     let router: Router;
 
-    const mockVideos = [
-        { id: 1, title: 'V1', contentType: 'v/mp4', size: 100, uploadDate: '' },
-        { id: 2, title: 'V2', contentType: 'v/mp4', size: 200, uploadDate: '' }
-    ];
+    const makeVideo = (id: number, title: string, status: string = 'READY') => ({
+        id, title, contentType: 'v/mp4', size: 100, uploadDate: '',
+        durationSeconds: 60, width: null, height: null, description: null,
+        tags: [], status, hasThumbnail: false
+    });
+
+    const mockVideos = [makeVideo(1, 'V1'), makeVideo(2, 'V2')];
 
     beforeEach(async () => {
         videoServiceSpy = {
@@ -89,5 +92,55 @@ describe('DashboardComponent', () => {
         component.onUploaded();
         expect(component.showUploadDialog).toBe(false);
         expect(videoServiceSpy.getUserVideos).toHaveBeenCalled();
+    });
+
+    describe('processing poll', () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('should poll while a video is PROCESSING and stop when READY', () => {
+            videoServiceSpy.getUserVideos.mockReturnValue(
+                of([makeVideo(1, 'V1', 'PROCESSING')])
+            );
+            fixture.detectChanges();
+            videoServiceSpy.getUserVideos.mockClear();
+
+            // Still processing after one tick — keeps polling
+            vi.advanceTimersByTime(3000);
+            expect(videoServiceSpy.getUserVideos).toHaveBeenCalledTimes(1);
+
+            // Now READY — polling should stop
+            videoServiceSpy.getUserVideos.mockReturnValue(of([makeVideo(1, 'V1', 'READY')]));
+            vi.advanceTimersByTime(3000);
+            expect(videoServiceSpy.getUserVideos).toHaveBeenCalledTimes(2);
+
+            vi.advanceTimersByTime(9000);
+            expect(videoServiceSpy.getUserVideos).toHaveBeenCalledTimes(2);
+        });
+
+        it('should not poll when nothing is processing', () => {
+            fixture.detectChanges(); // mockVideos are all READY
+            videoServiceSpy.getUserVideos.mockClear();
+
+            vi.advanceTimersByTime(10000);
+            expect(videoServiceSpy.getUserVideos).not.toHaveBeenCalled();
+        });
+
+        it('should stop polling on destroy', () => {
+            videoServiceSpy.getUserVideos.mockReturnValue(
+                of([makeVideo(1, 'V1', 'PROCESSING')])
+            );
+            fixture.detectChanges();
+            videoServiceSpy.getUserVideos.mockClear();
+
+            fixture.destroy();
+            vi.advanceTimersByTime(10000);
+            expect(videoServiceSpy.getUserVideos).not.toHaveBeenCalled();
+        });
     });
 });

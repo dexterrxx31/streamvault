@@ -1,8 +1,10 @@
 package com.streamvault.controller;
 
+import com.streamvault.config.WebConfig;
 import com.streamvault.dto.VideoResponse;
 import com.streamvault.model.User;
 import com.streamvault.model.Video;
+import com.streamvault.model.VideoStatus;
 import com.streamvault.security.JwtFilter;
 import com.streamvault.security.JwtUtil;
 import com.streamvault.service.AuthService;
@@ -15,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -33,6 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SuppressWarnings("null")
 @WebMvcTest(value = VideoController.class, excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtFilter.class))
+@Import(WebConfig.class) // registers the ResourceRegion converter used by /stream
 @DisplayName("VideoController Tests")
 class VideoControllerTest {
 
@@ -196,6 +200,124 @@ class VideoControllerTest {
                         mockMvc.perform(delete("/api/videos/1").with(csrf()))
                                         .andExpect(status().isBadRequest())
                                         .andExpect(jsonPath("$.error").value("Not authorized to delete this video"));
+                }
+        }
+
+        @Nested
+        @DisplayName("GET /api/videos/{id}")
+        class GetVideoEndpoint {
+
+                @Test
+                @WithMockUser(username = "testuser")
+                @DisplayName("Should return a single video with metadata")
+                void getVideo_success() throws Exception {
+                        when(authService.getUserByUsername("testuser")).thenReturn(testUser);
+
+                        VideoResponse response = VideoResponse.builder()
+                                        .id(1L).title("My Video").contentType("video/mp4")
+                                        .size(1024L).uploadDate(LocalDateTime.now())
+                                        .durationSeconds(123.4).width(1920).height(1080)
+                                        .status(VideoStatus.READY).hasThumbnail(true)
+                                        .build();
+
+                        when(videoService.getUserVideo(1L, 1L)).thenReturn(response);
+
+                        mockMvc.perform(get("/api/videos/1"))
+                                        .andExpect(status().isOk())
+                                        .andExpect(jsonPath("$.id").value(1))
+                                        .andExpect(jsonPath("$.durationSeconds").value(123.4))
+                                        .andExpect(jsonPath("$.status").value("READY"))
+                                        .andExpect(jsonPath("$.hasThumbnail").value(true));
+                }
+
+                @Test
+                @WithMockUser(username = "testuser")
+                @DisplayName("Should return 400 when video belongs to another user")
+                void getVideo_unauthorized() throws Exception {
+                        when(authService.getUserByUsername("testuser")).thenReturn(testUser);
+                        when(videoService.getUserVideo(1L, 1L))
+                                        .thenThrow(new RuntimeException("Not authorized to view this video"));
+
+                        mockMvc.perform(get("/api/videos/1"))
+                                        .andExpect(status().isBadRequest())
+                                        .andExpect(jsonPath("$.error").value("Not authorized to view this video"));
+                }
+        }
+
+        @Nested
+        @DisplayName("PUT /api/videos/{id}")
+        class UpdateVideoEndpoint {
+
+                @Test
+                @WithMockUser(username = "testuser")
+                @DisplayName("Should update title, description and tags")
+                void update_success() throws Exception {
+                        when(authService.getUserByUsername("testuser")).thenReturn(testUser);
+
+                        VideoResponse response = VideoResponse.builder()
+                                        .id(1L).title("New Title").description("New description")
+                                        .tags(List.of("tag1", "tag2")).status(VideoStatus.READY)
+                                        .build();
+
+                        when(videoService.updateVideo(eq(1L), eq(1L), eq("New Title"),
+                                        eq("New description"), eq(List.of("tag1", "tag2"))))
+                                        .thenReturn(response);
+
+                        mockMvc.perform(put("/api/videos/1")
+                                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                        .content("""
+                                                        {"title": "New Title", "description": "New description",
+                                                         "tags": ["tag1", "tag2"]}
+                                                        """)
+                                        .with(csrf()))
+                                        .andExpect(status().isOk())
+                                        .andExpect(jsonPath("$.title").value("New Title"))
+                                        .andExpect(jsonPath("$.tags.length()").value(2));
+                }
+
+                @Test
+                @WithMockUser(username = "testuser")
+                @DisplayName("Should return 400 when not authorized to update")
+                void update_unauthorized() throws Exception {
+                        when(authService.getUserByUsername("testuser")).thenReturn(testUser);
+                        when(videoService.updateVideo(any(), any(), any(), any(), any()))
+                                        .thenThrow(new RuntimeException("Not authorized to update this video"));
+
+                        mockMvc.perform(put("/api/videos/1")
+                                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                                        .content("{\"title\": \"x\"}")
+                                        .with(csrf()))
+                                        .andExpect(status().isBadRequest())
+                                        .andExpect(jsonPath("$.error").value("Not authorized to update this video"));
+                }
+        }
+
+        @Nested
+        @DisplayName("GET /api/videos/{id}/thumbnail")
+        class ThumbnailEndpoint {
+
+                @Test
+                @WithMockUser
+                @DisplayName("Should serve thumbnail as JPEG with cache header")
+                void thumbnail_success() throws Exception {
+                        ByteArrayResource resource = new ByteArrayResource("fake jpeg".getBytes());
+                        when(videoService.getThumbnailResource(1L)).thenReturn(resource);
+
+                        mockMvc.perform(get("/api/videos/1/thumbnail"))
+                                        .andExpect(status().isOk())
+                                        .andExpect(header().string("Content-Type", "image/jpeg"))
+                                        .andExpect(header().string("Cache-Control", "max-age=3600"));
+                }
+
+                @Test
+                @WithMockUser
+                @DisplayName("Should return 404 when thumbnail is not available")
+                void thumbnail_notFound() throws Exception {
+                        when(videoService.getThumbnailResource(1L))
+                                        .thenThrow(new RuntimeException("Thumbnail not available"));
+
+                        mockMvc.perform(get("/api/videos/1/thumbnail"))
+                                        .andExpect(status().isNotFound());
                 }
         }
 

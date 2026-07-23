@@ -1,11 +1,28 @@
 <div class="video-card glass-card" (click)="onPlay()">
     <div class="card-thumbnail">
-        <div class="thumbnail-placeholder">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-        </div>
+        @if (showThumbnail) {
+            <img class="thumbnail-image" [src]="thumbnailUrl" [alt]="video.title" loading="lazy"
+                (error)="onThumbnailError()" />
+        } @else {
+            <div class="thumbnail-placeholder">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+            </div>
+        }
+
+        @if (video.status === 'PROCESSING') {
+            <div class="status-badge processing">
+                <span class="spinner"></span>
+                Processing…
+            </div>
+        } @else if (video.status === 'FAILED') {
+            <div class="status-badge failed">Processing failed</div>
+        } @else if (video.durationSeconds) {
+            <div class="duration-badge">{{ formatDuration(video.durationSeconds) }}</div>
+        }
+
         <div class="card-overlay">
             <div class="play-btn">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
