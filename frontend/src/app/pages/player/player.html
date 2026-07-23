@@ -15,11 +15,39 @@
 
     <div class="player-container animate-fade-in-up">
         @if (streamUrl) {
-        <video class="video-player" [src]="streamUrl" controls autoplay preload="auto">
+        <!-- crossorigin is required for the CORS-enforced captions <track> -->
+        <video #videoRef class="video-player" [src]="streamUrl" crossorigin="anonymous" controls autoplay
+            preload="auto">
+            @if (video?.hasCaptions) {
+            <track kind="captions" [src]="captionsUrl" srclang="en" label="English" default />
+            }
             Your browser does not support the video element.
         </video>
         }
     </div>
+
+    @if (video?.summary) {
+    <div class="video-summary glass-card animate-fade-in-up">
+        <span class="ai-badge">✨ AI Summary</span>
+        <p>{{ video!.summary }}</p>
+    </div>
+    }
+
+    @if (video && video.chapters.length) {
+    <div class="video-chapters glass-card animate-fade-in-up">
+        <h3 class="chapters-title">Chapters</h3>
+        <ul class="chapter-list">
+            @for (chapter of video.chapters; track chapter.startSeconds) {
+            <li>
+                <button class="chapter-item" (click)="seekTo(chapter)">
+                    <span class="chapter-time">{{ formatChapterTime(chapter.startSeconds) }}</span>
+                    <span class="chapter-name">{{ chapter.title }}</span>
+                </button>
+            </li>
+            }
+        </ul>
+    </div>
+    }
 
     @if (hasSuggestions) {
     <div class="ai-suggestions glass-card animate-fade-in-up">

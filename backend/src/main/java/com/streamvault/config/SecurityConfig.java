@@ -39,6 +39,7 @@ public class SecurityConfig {
                         // cannot send Authorization headers (same accepted tradeoff)
                         .requestMatchers("/api/videos/stream/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/videos/*/thumbnail").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/videos/*/captions.vtt").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

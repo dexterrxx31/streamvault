@@ -47,6 +47,20 @@ public class Video {
 
     private String thumbnailFilename;
 
+    // Transcription + AI chapters (Phase 4) — set via setters by the pipeline
+    private String captionsFilename;
+
+    @Column(columnDefinition = "TEXT")
+    private String transcriptText;
+
+    @Column(columnDefinition = "TEXT")
+    private String summary;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "video_chapters", joinColumns = @JoinColumn(name = "video_id"))
+    @OrderColumn(name = "position")
+    private List<ChapterMarker> chapters = new ArrayList<>();
+
     // AI-suggested metadata — ephemeral until the user accepts or dismisses
     private String aiTitle;
 
@@ -220,6 +234,38 @@ public class Video {
 
     public void setAiTags(String aiTags) {
         this.aiTags = aiTags;
+    }
+
+    public String getCaptionsFilename() {
+        return captionsFilename;
+    }
+
+    public void setCaptionsFilename(String captionsFilename) {
+        this.captionsFilename = captionsFilename;
+    }
+
+    public String getTranscriptText() {
+        return transcriptText;
+    }
+
+    public void setTranscriptText(String transcriptText) {
+        this.transcriptText = transcriptText;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
+
+    public List<ChapterMarker> getChapters() {
+        return chapters;
+    }
+
+    public void setChapters(List<ChapterMarker> chapters) {
+        this.chapters = chapters;
     }
 
     public User getUser() {

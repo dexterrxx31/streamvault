@@ -22,13 +22,17 @@ public class VideoResponse {
     private String aiTitle;
     private String aiDescription;
     private List<String> aiTags = new ArrayList<>();
+    private String summary;
+    private List<ChapterResponse> chapters = new ArrayList<>();
+    private boolean hasCaptions;
 
     public VideoResponse() {
     }
 
     public VideoResponse(Long id, String title, String contentType, Long size, LocalDateTime uploadDate,
             Double durationSeconds, Integer width, Integer height, String description, List<String> tags,
-            VideoStatus status, boolean hasThumbnail, String aiTitle, String aiDescription, List<String> aiTags) {
+            VideoStatus status, boolean hasThumbnail, String aiTitle, String aiDescription, List<String> aiTags,
+            String summary, List<ChapterResponse> chapters, boolean hasCaptions) {
         this.id = id;
         this.title = title;
         this.contentType = contentType;
@@ -44,6 +48,9 @@ public class VideoResponse {
         this.aiTitle = aiTitle;
         this.aiDescription = aiDescription;
         this.aiTags = aiTags != null ? aiTags : new ArrayList<>();
+        this.summary = summary;
+        this.chapters = chapters != null ? chapters : new ArrayList<>();
+        this.hasCaptions = hasCaptions;
     }
 
     public Long getId() {
@@ -166,6 +173,30 @@ public class VideoResponse {
         this.aiTags = aiTags;
     }
 
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
+
+    public List<ChapterResponse> getChapters() {
+        return chapters;
+    }
+
+    public void setChapters(List<ChapterResponse> chapters) {
+        this.chapters = chapters;
+    }
+
+    public boolean isHasCaptions() {
+        return hasCaptions;
+    }
+
+    public void setHasCaptions(boolean hasCaptions) {
+        this.hasCaptions = hasCaptions;
+    }
+
     public static VideoResponseBuilder builder() {
         return new VideoResponseBuilder();
     }
@@ -186,6 +217,9 @@ public class VideoResponse {
         private String aiTitle;
         private String aiDescription;
         private List<String> aiTags;
+        private String summary;
+        private List<ChapterResponse> chapters;
+        private boolean hasCaptions;
 
         public VideoResponseBuilder id(Long id) {
             this.id = id;
@@ -262,9 +296,25 @@ public class VideoResponse {
             return this;
         }
 
+        public VideoResponseBuilder summary(String summary) {
+            this.summary = summary;
+            return this;
+        }
+
+        public VideoResponseBuilder chapters(List<ChapterResponse> chapters) {
+            this.chapters = chapters;
+            return this;
+        }
+
+        public VideoResponseBuilder hasCaptions(boolean hasCaptions) {
+            this.hasCaptions = hasCaptions;
+            return this;
+        }
+
         public VideoResponse build() {
             return new VideoResponse(id, title, contentType, size, uploadDate, durationSeconds, width, height,
-                    description, tags, status, hasThumbnail, aiTitle, aiDescription, aiTags);
+                    description, tags, status, hasThumbnail, aiTitle, aiDescription, aiTags,
+                    summary, chapters, hasCaptions);
         }
     }
 }

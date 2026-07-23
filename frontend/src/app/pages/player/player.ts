@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { VideoService, VideoInfo } from '../../services/video.service';
+import { VideoService, VideoInfo, ChapterInfo } from '../../services/video.service';
 
 @Component({
     selector: 'app-player',
@@ -13,9 +13,12 @@ import { VideoService, VideoInfo } from '../../services/video.service';
 export class PlayerComponent implements OnInit {
     videoId: number = 0;
     streamUrl: string = '';
+    captionsUrl: string = '';
     video: VideoInfo | null = null;
     loading = true;
     suggestionBusy = false;
+
+    @ViewChild('videoRef') videoRef?: ElementRef<HTMLVideoElement>;
 
     constructor(
         private route: ActivatedRoute,
@@ -27,6 +30,7 @@ export class PlayerComponent implements OnInit {
         this.route.params.subscribe(params => {
             this.videoId = +params['id'];
             this.streamUrl = this.videoService.getStreamUrl(this.videoId);
+            this.captionsUrl = this.videoService.getCaptionsUrl(this.videoId);
             this.loadVideoInfo();
         });
     }
@@ -78,6 +82,23 @@ export class PlayerComponent implements OnInit {
                 this.loading = false;
             }
         });
+    }
+
+    seekTo(chapter: ChapterInfo): void {
+        const video = this.videoRef?.nativeElement;
+        if (video) {
+            video.currentTime = chapter.startSeconds;
+            video.play();
+        }
+    }
+
+    formatChapterTime(seconds: number): string {
+        const total = Math.round(seconds);
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
     }
 
     goBack(): void {

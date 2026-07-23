@@ -86,6 +86,19 @@ public class VideoController {
         }
     }
 
+    // Public like /stream/** — <track> tags cannot send Authorization headers.
+    @GetMapping("/{id}/captions.vtt")
+    public ResponseEntity<?> getCaptions(@PathVariable Long id) {
+        try {
+            Resource resource = videoService.getCaptionsResource(id);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType("text/vtt;charset=UTF-8"))
+                    .body(resource);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     // Public like /stream/** — <img> tags cannot send Authorization headers.
     // Accepted tradeoff: numeric ids are guessable; tightening would need signed URLs.
     @GetMapping("/{id}/thumbnail")

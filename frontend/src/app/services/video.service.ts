@@ -4,6 +4,11 @@ import { Observable, map } from 'rxjs';
 
 export type VideoStatus = 'PROCESSING' | 'READY' | 'FAILED';
 
+export interface ChapterInfo {
+    startSeconds: number;
+    title: string;
+}
+
 export interface VideoInfo {
     id: number;
     title: string;
@@ -20,6 +25,9 @@ export interface VideoInfo {
     aiTitle: string | null;
     aiDescription: string | null;
     aiTags: string[];
+    summary: string | null;
+    chapters: ChapterInfo[];
+    hasCaptions: boolean;
 }
 
 export interface UpdateVideoPayload {
@@ -88,5 +96,9 @@ export class VideoService {
 
     getThumbnailUrl(id: number): string {
         return `${this.API_URL}/${id}/thumbnail`;
+    }
+
+    getCaptionsUrl(id: number): string {
+        return `${this.API_URL}/${id}/captions.vtt`;
     }
 }

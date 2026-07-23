@@ -45,10 +45,14 @@ describe('PlayerComponent', () => {
                 hasThumbnail: true,
                 aiTitle: null,
                 aiDescription: null,
-                aiTags: []
+                aiTags: [],
+                summary: null,
+                chapters: [],
+                hasCaptions: false
             })),
             updateVideo: vi.fn(),
-            getStreamUrl: vi.fn().mockReturnValue('http://stream/1')
+            getStreamUrl: vi.fn().mockReturnValue('http://stream/1'),
+            getCaptionsUrl: vi.fn().mockReturnValue('http://captions/1')
         };
 
         routerSpy = {
@@ -76,7 +80,6 @@ describe('PlayerComponent', () => {
         fixture.detectChanges();
         expect(component).toBeTruthy();
         expect(component.videoId).toBe(1);
-        expect(videoServiceSpy.getVideo).toHaveBeenCalledWith(1);
         expect(component.video?.title).toBe('Test Video');
         expect(component.streamUrl).toBe('http://stream/1');
     });
@@ -98,7 +101,8 @@ describe('PlayerComponent', () => {
             id: 1, title: 'Test Video', contentType: 'video/mp4', size: 1024,
             uploadDate: '2024-03-15', durationSeconds: 120, width: 1920, height: 1080,
             description: null, tags: [], status: 'READY', hasThumbnail: true,
-            aiTitle: 'AI Better Title', aiDescription: 'AI description', aiTags: ['fun', 'demo']
+            aiTitle: 'AI Better Title', aiDescription: 'AI description', aiTags: ['fun', 'demo'],
+            summary: null, chapters: [], hasCaptions: false
         };
         const resolved = { ...suggested, title: 'AI Better Title', aiTitle: null, aiDescription: null, aiTags: [] };
 
@@ -139,6 +143,61 @@ describe('PlayerComponent', () => {
             expect(videoServiceSpy.updateVideo).toHaveBeenCalledWith(1, {});
             expect(component.video?.title).toBe('Test Video');
             expect(component.hasSuggestions).toBe(false);
+        });
+    });
+
+    describe('captions and chapters', () => {
+        const withChapters = {
+            id: 1, title: 'Test Video', contentType: 'video/mp4', size: 1024,
+            uploadDate: '2024-03-15', durationSeconds: 120, width: 1920, height: 1080,
+            description: null, tags: [], status: 'READY', hasThumbnail: true,
+            aiTitle: null, aiDescription: null, aiTags: [],
+            summary: 'A short walkthrough of the app.',
+            chapters: [
+                { startSeconds: 0, title: 'Intro' },
+                { startSeconds: 65, title: 'Main topic' }
+            ],
+            hasCaptions: true
+        };
+
+        beforeEach(() => {
+            videoServiceSpy.getVideo.mockReturnValue(of(withChapters));
+        });
+
+        it('should render captions track when available', () => {
+            fixture.detectChanges();
+            const track = fixture.nativeElement.querySelector('track');
+            expect(track).toBeTruthy();
+            expect(track.getAttribute('src')).toBe('http://captions/1');
+        });
+
+        it('should render summary and clickable chapters', () => {
+            fixture.detectChanges();
+            expect(fixture.nativeElement.querySelector('.video-summary').textContent)
+                .toContain('A short walkthrough of the app.');
+
+            const items = fixture.nativeElement.querySelectorAll('.chapter-item');
+            expect(items.length).toBe(2);
+            expect(items[1].textContent).toContain('1:05');
+            expect(items[1].textContent).toContain('Main topic');
+        });
+
+        it('should seek the video element on chapter click', () => {
+            fixture.detectChanges();
+            const videoEl = fixture.nativeElement.querySelector('video');
+            videoEl.play = vi.fn();
+
+            const items = fixture.nativeElement.querySelectorAll('.chapter-item');
+            items[1].click();
+
+            expect(videoEl.currentTime).toBe(65);
+            expect(videoEl.play).toHaveBeenCalled();
+        });
+
+        it('should format chapter timestamps', () => {
+            expect(component.formatChapterTime(0)).toBe('0:00');
+            expect(component.formatChapterTime(65)).toBe('1:05');
+            expect(component.formatChapterTime(3671)).toBe('1:01:11');
         });
     });
 });

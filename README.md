@@ -82,6 +82,7 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
 - `DELETE /{id}`: Remove a video file, its thumbnail/frames, and metadata.
 - `GET /stream/{id}`: Byte-range streaming endpoint (memory-efficient `ResourceRegion`).
 - `GET /{id}/thumbnail`: Auto-generated poster thumbnail (public, like `/stream`).
+- `GET /{id}/captions.vtt`: WebVTT captions from Whisper transcription (public, for `<track>`).
 
 ---
 
@@ -93,6 +94,10 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
 - **Maven**: 3.8+
 - **FFmpeg**: `ffmpeg` + `ffprobe` on PATH (`brew install ffmpeg`) — used for video metadata and thumbnail generation. If missing, uploads still work but are marked `FAILED` after processing.
 - **Docker**: for the PostgreSQL database (`docker compose up -d`). Data persists across restarts in a named volume.
+
+### Optional (AI features)
+- **Claude API key**: set `ANTHROPIC_API_KEY` to enable AI-suggested titles/descriptions/tags (from video frames) and AI chapters/summaries (from the transcript). Without it, videos process normally — the AI steps are skipped.
+- **whisper.cpp**: `brew install whisper-cpp`, download a model (e.g. [ggml-base.en.bin](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin)), and set `WHISPER_MODEL_PATH=/path/to/ggml-base.en.bin` to enable transcription + closed captions. Transcription runs on CPU and queues behind other processing for long videos.
 
 ### Quick Start
 

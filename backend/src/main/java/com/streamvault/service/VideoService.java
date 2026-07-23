@@ -1,5 +1,6 @@
 package com.streamvault.service;
 
+import com.streamvault.dto.ChapterResponse;
 import com.streamvault.dto.VideoResponse;
 import com.streamvault.model.User;
 import com.streamvault.model.Video;
@@ -130,6 +131,14 @@ public class VideoService {
         return fileResource(video.getThumbnailFilename(), "Thumbnail file not found");
     }
 
+    public Resource getCaptionsResource(Long id) {
+        Video video = getVideoById(id);
+        if (video.getCaptionsFilename() == null) {
+            throw new RuntimeException("Captions not available");
+        }
+        return fileResource(video.getCaptionsFilename(), "Captions file not found");
+    }
+
     public void deleteVideo(Long id, Long userId) {
         Video video = getVideoById(id);
         if (!video.getUser().getId().equals(userId)) {
@@ -138,6 +147,9 @@ public class VideoService {
         deleteQuietly(video.getFilename());
         if (video.getThumbnailFilename() != null) {
             deleteQuietly(video.getThumbnailFilename());
+        }
+        if (video.getCaptionsFilename() != null) {
+            deleteQuietly(video.getCaptionsFilename());
         }
         // Frames extracted for AI analysis follow a naming convention next to the video
         String baseName = stripExtension(video.getFilename());
@@ -192,6 +204,11 @@ public class VideoService {
                 .aiTags(video.getAiTags() != null
                         ? List.of(video.getAiTags().split(","))
                         : List.of())
+                .summary(video.getSummary())
+                .chapters(video.getChapters().stream()
+                        .map(c -> new ChapterResponse(c.getStartSeconds(), c.getTitle()))
+                        .collect(Collectors.toList()))
+                .hasCaptions(video.getCaptionsFilename() != null)
                 .build();
     }
 }

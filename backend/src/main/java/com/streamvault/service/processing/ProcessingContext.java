@@ -1,6 +1,7 @@
 package com.streamvault.service.processing;
 
 import com.streamvault.model.Video;
+import com.streamvault.service.transcription.Transcript;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -16,6 +17,8 @@ public class ProcessingContext {
     private final Path videoPath;
     private final Path uploadDir;
     private final List<Path> frames = new ArrayList<>();
+    private Path audioPath;
+    private Transcript transcript;
 
     public ProcessingContext(Video video, Path videoPath, Path uploadDir) {
         this.video = video;
@@ -38,5 +41,23 @@ public class ProcessingContext {
     /** Frames extracted by the thumbnail step, reused by later (AI) steps. */
     public List<Path> getFrames() {
         return frames;
+    }
+
+    /** Temp 16kHz mono WAV produced by the audio-extraction step. */
+    public Path getAudioPath() {
+        return audioPath;
+    }
+
+    public void setAudioPath(Path audioPath) {
+        this.audioPath = audioPath;
+    }
+
+    /** Transcript produced by the transcription step, consumed by chapters. */
+    public Transcript getTranscript() {
+        return transcript;
+    }
+
+    public void setTranscript(Transcript transcript) {
+        this.transcript = transcript;
     }
 }
