@@ -36,12 +36,15 @@ describe('VideoCardComponent', () => {
         description: null,
         tags: [],
         status: 'READY',
-        hasThumbnail: true
-    };
+        hasThumbnail: true,
+        streamUrl: '/api/videos/stream/1?exp=1&sig=s',
+        thumbnailUrl: '/api/videos/1/thumbnail?exp=1&sig=t',
+        captionsUrl: null
+    } as VideoInfo;
 
     beforeEach(async () => {
         const videoServiceSpy = {
-            getThumbnailUrl: vi.fn().mockReturnValue('http://thumb/1')
+            mediaUrl: vi.fn((path: string) => 'http://api' + path)
         };
 
         await TestBed.configureTestingModule({
@@ -88,7 +91,7 @@ describe('VideoCardComponent', () => {
         render();
         const img = fixture.debugElement.query(By.css('.thumbnail-image'));
         expect(img).toBeTruthy();
-        expect(img.nativeElement.src).toBe('http://thumb/1');
+        expect(img.nativeElement.src).toBe('http://api/api/videos/1/thumbnail?exp=1&sig=t');
 
         const badge = fixture.debugElement.query(By.css('.duration-badge'));
         expect(badge.nativeElement.textContent.trim()).toBe('2:05');
@@ -103,7 +106,7 @@ describe('VideoCardComponent', () => {
     });
 
     it('should show processing badge and no thumbnail while PROCESSING', () => {
-        render({ status: 'PROCESSING', hasThumbnail: false, durationSeconds: null });
+        render({ status: 'PROCESSING', hasThumbnail: false, thumbnailUrl: null, durationSeconds: null });
 
         expect(fixture.debugElement.query(By.css('.thumbnail-image'))).toBeFalsy();
         const badge = fixture.debugElement.query(By.css('.status-badge.processing'));

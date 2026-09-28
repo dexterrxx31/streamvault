@@ -100,10 +100,20 @@ describe('AuthService', () => {
     });
 
     describe('getters', () => {
-        it('should return correct isLoggedIn value', () => {
+        const jwtWithExp = (exp: number) =>
+            'h.' + btoa(JSON.stringify({ sub: 'u', exp })).replace(/=+$/, '') + '.s';
+
+        it('should be logged in only with an unexpired token', () => {
             expect(service.isLoggedIn).toBe(false);
-            localStorage.setItem('sv_token', 'some-token');
+            localStorage.setItem('sv_token', jwtWithExp(Math.floor(Date.now() / 1000) + 3600));
             expect(service.isLoggedIn).toBe(true);
+        });
+
+        it('should treat expired or malformed tokens as logged out', () => {
+            localStorage.setItem('sv_token', jwtWithExp(Math.floor(Date.now() / 1000) - 10));
+            expect(service.isLoggedIn).toBe(false);
+            localStorage.setItem('sv_token', 'not-a-jwt');
+            expect(service.isLoggedIn).toBe(false);
         });
 
         it('should return correct token value', () => {

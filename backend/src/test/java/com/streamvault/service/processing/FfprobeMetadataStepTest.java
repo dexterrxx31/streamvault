@@ -30,7 +30,7 @@ class FfprobeMetadataStepTest {
                 {"codec_type": "audio", "sample_rate": "44100"},
                 {"codec_type": "video", "width": 1920, "height": 1080}
               ],
-              "format": {"duration": "123.456"}
+              "format": {"duration": "123.456", "format_name": "mov,mp4,m4a,3gp,3g2,mj2"}
             }
             """;
 
@@ -75,6 +75,30 @@ class FfprobeMetadataStepTest {
     }
 
     @Test
+    @DisplayName("Should reject containers outside the allowlist (e.g. HLS playlists, concat scripts)")
+    void process_rejectsDisallowedFormats() throws Exception {
+        for (String format : List.of("hls", "concat", "image2", "")) {
+            when(commandRunner.run(anyList(), any(Duration.class)))
+                    .thenReturn(new CommandRunner.CommandResult(0,
+                            "{\"format\": {\"duration\": \"5\", \"format_name\": \"" + format + "\"}}", ""));
+
+            assertThrows(RuntimeException.class, () -> step.process(ctx), format);
+        }
+    }
+
+    @Test
+    @DisplayName("Should accept matroska/webm")
+    void process_acceptsWebm() throws Exception {
+        when(commandRunner.run(anyList(), any(Duration.class)))
+                .thenReturn(new CommandRunner.CommandResult(0,
+                        "{\"format\": {\"duration\": \"5\", \"format_name\": \"matroska,webm\"}}", ""));
+
+        step.process(ctx);
+
+        assertEquals(5.0, ctx.getVideo().getDurationSeconds());
+    }
+
+    @Test
     @DisplayName("Should be a required step")
     void isRequired() {
         assertTrue(step.required());
@@ -94,5 +118,8 @@ class FfprobeMetadataStepTest {
         List<String> command = captor.getValue();
         assertEquals("ffprobe", command.get(0));
         assertTrue(command.contains(ctx.getVideoPath().toString()));
+        int whitelist = command.indexOf("-protocol_whitelist");
+        assertTrue(whitelist >= 0, "ffprobe must restrict protocols");
+        assertEquals("file", command.get(whitelist + 1));
     }
 }

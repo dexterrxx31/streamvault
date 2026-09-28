@@ -7,16 +7,25 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
- * Extracts duration and resolution via ffprobe JSON output.
+ * Extracts duration and resolution via ffprobe JSON output. Also the
+ * pipeline's gatekeeper: ffmpeg detects formats by content, not extension, so
+ * an upload that is really e.g. an HLS playlist or concat script (which can
+ * make ffmpeg fetch URLs or read local files) is rejected here, before any
+ * later step decodes it.
  */
 @Component
 @Order(10)
 public class FfprobeMetadataStep implements ProcessingStep {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
+
+    /** ffprobe format_name components for the containers we accept. */
+    private static final Set<String> ALLOWED_FORMATS = Set.of("mov", "mp4", "matroska", "webm", "avi");
 
     private final CommandRunner commandRunner;
     private final ObjectMapper objectMapper;
@@ -43,6 +52,7 @@ public class FfprobeMetadataStep implements ProcessingStep {
     public void process(ProcessingContext ctx) throws Exception {
         List<String> command = List.of(
                 ffprobePath, "-v", "quiet",
+                "-protocol_whitelist", "file",
                 "-print_format", "json",
                 "-show_format", "-show_streams",
                 ctx.getVideoPath().toString());
@@ -53,6 +63,11 @@ public class FfprobeMetadataStep implements ProcessingStep {
         }
 
         JsonNode root = objectMapper.readTree(result.stdout());
+
+        String formatName = root.path("format").path("format_name").asText("");
+        if (Arrays.stream(formatName.split(",")).noneMatch(ALLOWED_FORMATS::contains)) {
+            throw new RuntimeException("Unsupported container format: '" + formatName + "'");
+        }
 
         JsonNode duration = root.path("format").path("duration");
         if (!duration.isMissingNode()) {

@@ -3,6 +3,7 @@ package com.streamvault.service.transcription;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamvault.service.processing.CommandRunner;
+import com.streamvault.service.processing.MediaFiles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,7 +59,7 @@ public class WhisperCliTranscriptionService implements TranscriptionService {
             return Optional.empty();
         }
         // whisper-cli -of takes a basename and writes <basename>.json
-        Path outputBase = wav16kMono.resolveSibling(stripExtension(wav16kMono.getFileName().toString()));
+        Path outputBase = wav16kMono.resolveSibling(MediaFiles.stripExtension(wav16kMono.getFileName().toString()));
         Path outputJson = outputBase.resolveSibling(outputBase.getFileName() + ".json");
         try {
             List<String> command = List.of(
@@ -100,10 +101,5 @@ public class WhisperCliTranscriptionService implements TranscriptionService {
             segments.add(new Transcript.Segment(start, end, text));
         }
         return new Transcript(segments);
-    }
-
-    private String stripExtension(String filename) {
-        int dot = filename.lastIndexOf('.');
-        return dot > 0 ? filename.substring(0, dot) : filename;
     }
 }

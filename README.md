@@ -19,7 +19,9 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
 ## 🚀 Key Features
 
 ### 🔐 Secure Authentication
-- **JWT-based Security**: Stateless authentication with encrypted tokens.
+- **JWT-based Security**: Stateless authentication with signed tokens; secrets come from the environment, never the repo.
+- **Signed Media URLs**: Stream, thumbnail, and caption URLs are short-lived HMAC-signed links issued only to the video's owner.
+- **Hardening**: Server-side input validation, login rate limiting, an upload type allowlist, and sandboxed FFmpeg input (file protocol only, container allowlist).
 - **Protected Routes**: Secure dashboard and player access.
 - **Session Persistence**: Automatic login using stored tokens.
 
@@ -51,7 +53,7 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
 ### Backend
 - **Framework**: Spring Boot 3.4
 - **Security**: Spring Security + JWT
-- **Database**: H2 (In-memory for development)
+- **Database**: PostgreSQL (Docker) with Flyway migrations; H2 for tests
 - **Persistence**: Spring Data JPA / Hibernate
 - **Testing**: JUnit 5 + Mockito + MockMvc
 
@@ -61,7 +63,7 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
 
 ### System Overview
 ```
-[ Angular Frontend ] <--> [ Spring Boot API ] <--> [ H2 Database ]
+[ Angular Frontend ] <--> [ Spring Boot API ] <--> [ PostgreSQL ]
                                      |
                                      v
                             [ Local File System ]
@@ -80,9 +82,11 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
 - `GET /{id}`: Fetch a single video's metadata (owner only).
 - `PUT /{id}`: Update title, description, and tags (owner only).
 - `DELETE /{id}`: Remove a video file, its thumbnail/frames, and metadata.
-- `GET /stream/{id}`: Byte-range streaming endpoint (memory-efficient `ResourceRegion`).
-- `GET /{id}/thumbnail`: Auto-generated poster thumbnail (public, like `/stream`).
-- `GET /{id}/captions.vtt`: WebVTT captions from Whisper transcription (public, for `<track>`).
+- `GET /stream/{id}?exp=&sig=`: Byte-range streaming endpoint (memory-efficient `ResourceRegion`).
+- `GET /{id}/thumbnail?exp=&sig=`: Auto-generated poster thumbnail.
+- `GET /{id}/captions.vtt?exp=&sig=`: WebVTT captions from Whisper transcription.
+
+The three media endpoints need no JWT (`<video>`, `<img>` and `<track>` tags can't send one). Instead they require the pre-signed `streamUrl` / `thumbnailUrl` / `captionsUrl` returned in the owner's video metadata. Unsigned, forged, or expired requests get a 404.
 
 ---
 
@@ -107,18 +111,27 @@ StreamVault is a high-performance, full-stack video streaming platform featuring
     cd streamvault
     ```
 
-2.  **Start PostgreSQL**
+2.  **Set secrets** (required; the backend refuses to start without them)
+    ```bash
+    export JWT_SECRET="$(openssl rand -base64 48)"
+    export MEDIA_SECRET="$(openssl rand -base64 48)"
+    # optional; defaults to "streamvault" for local dev
+    export DB_PASSWORD=streamvault
+    ```
+    See `.env.example`. Keep the values stable across restarts, or existing logins and media links become invalid.
+
+3.  **Start PostgreSQL** (bound to localhost only)
     ```bash
     docker compose up -d
     ```
 
-3.  **Launch Backend**
+4.  **Launch Backend**
     ```bash
     cd backend
     ./mvnw spring-boot:run
     ```
 
-4.  **Launch Frontend**
+5.  **Launch Frontend**
     ```bash
     cd ../frontend
     npm install

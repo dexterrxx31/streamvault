@@ -28,6 +28,10 @@ export interface VideoInfo {
     summary: string | null;
     chapters: ChapterInfo[];
     hasCaptions: boolean;
+    /** Pre-signed, short-lived media paths (relative to the API origin). */
+    streamUrl: string;
+    thumbnailUrl: string | null;
+    captionsUrl: string | null;
 }
 
 export interface UpdateVideoPayload {
@@ -44,7 +48,8 @@ export interface UploadProgress {
 
 @Injectable({ providedIn: 'root' })
 export class VideoService {
-    private readonly API_URL = 'http://localhost:8080/api/videos';
+    private readonly API_ORIGIN = 'http://localhost:8080';
+    private readonly API_URL = `${this.API_ORIGIN}/api/videos`;
 
     constructor(private http: HttpClient) { }
 
@@ -90,15 +95,8 @@ export class VideoService {
         return this.http.delete(`${this.API_URL}/${id}`);
     }
 
-    getStreamUrl(id: number): string {
-        return `${this.API_URL}/stream/${id}`;
-    }
-
-    getThumbnailUrl(id: number): string {
-        return `${this.API_URL}/${id}/thumbnail`;
-    }
-
-    getCaptionsUrl(id: number): string {
-        return `${this.API_URL}/${id}/captions.vtt`;
+    /** Absolute URL for a signed media path from {@link VideoInfo}. */
+    mediaUrl(path: string): string {
+        return `${this.API_ORIGIN}${path}`;
     }
 }

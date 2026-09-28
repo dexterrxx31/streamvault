@@ -72,11 +72,11 @@ describe('SignupComponent', () => {
         authServiceSpy.signup.mockReturnValue(of({}));
         component.username = 'new';
         component.email = 'new@e.com';
-        component.password = 'pass123';
-        component.confirmPassword = 'pass123';
+        component.password = 'pass1234';
+        component.confirmPassword = 'pass1234';
         component.onSubmit();
 
-        expect(authServiceSpy.signup).toHaveBeenCalledWith('new', 'new@e.com', 'pass123');
+        expect(authServiceSpy.signup).toHaveBeenCalledWith('new', 'new@e.com', 'pass1234');
         expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
     });
 
@@ -84,8 +84,8 @@ describe('SignupComponent', () => {
         authServiceSpy.signup.mockReturnValue(throwError(() => ({ error: { error: 'Exists' } })));
         component.username = 'old';
         component.email = 'old@e.com';
-        component.password = 'p123456';
-        component.confirmPassword = 'p123456';
+        component.password = 'p1234567';
+        component.confirmPassword = 'p1234567';
         component.onSubmit();
 
         expect(component.loading).toBe(false);

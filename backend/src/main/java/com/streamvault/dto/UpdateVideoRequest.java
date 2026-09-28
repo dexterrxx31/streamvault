@@ -1,11 +1,18 @@
 package com.streamvault.dto;
 
+import jakarta.validation.constraints.Size;
+
 import java.util.List;
 
 public class UpdateVideoRequest {
+    @Size(max = 255)
     private String title;
+
+    @Size(max = 5000)
     private String description;
-    private List<String> tags;
+
+    @Size(max = 20)
+    private List<@Size(max = 50) String> tags;
 
     public UpdateVideoRequest() {
     }

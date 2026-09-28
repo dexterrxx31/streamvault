@@ -36,6 +36,9 @@ function makeVideo(overrides: Partial<VideoInfo> = {}): VideoInfo {
         aiTitle: null,
         aiDescription: null,
         aiTags: [],
+        streamUrl: '/api/videos/stream/1?exp=1&sig=s',
+        thumbnailUrl: null,
+        captionsUrl: null,
         ...overrides,
     };
 }
@@ -118,17 +121,10 @@ describe('VideoService', () => {
         });
     });
 
-    describe('getStreamUrl', () => {
-        it('should return correct stream URL', () => {
-            const url = service.getStreamUrl(5);
-            expect(url).toBe('http://localhost:8080/api/videos/stream/5');
-        });
-    });
-
-    describe('getThumbnailUrl', () => {
-        it('should return correct thumbnail URL', () => {
-            const url = service.getThumbnailUrl(5);
-            expect(url).toBe('http://localhost:8080/api/videos/5/thumbnail');
+    describe('mediaUrl', () => {
+        it('should prefix a signed media path with the API origin', () => {
+            const url = service.mediaUrl('/api/videos/stream/5?exp=1&sig=abc');
+            expect(url).toBe('http://localhost:8080/api/videos/stream/5?exp=1&sig=abc');
         });
     });
 

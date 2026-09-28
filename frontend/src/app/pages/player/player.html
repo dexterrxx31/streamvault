@@ -18,7 +18,7 @@
         <!-- crossorigin is required for the CORS-enforced captions <track> -->
         <video #videoRef class="video-player" [src]="streamUrl" crossorigin="anonymous" controls autoplay
             preload="auto">
-            @if (video?.hasCaptions) {
+            @if (captionsUrl) {
             <track kind="captions" [src]="captionsUrl" srclang="en" label="English" default />
             }
             Your browser does not support the video element.

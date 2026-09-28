@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamvault.dto.AuthResponse;
 import com.streamvault.dto.LoginRequest;
 import com.streamvault.dto.SignupRequest;
+import com.streamvault.exception.BadRequestException;
 import com.streamvault.model.User;
 import com.streamvault.security.JwtFilter;
 import com.streamvault.security.JwtUtil;
+import com.streamvault.security.LoginAttemptLimiter;
 import com.streamvault.service.AuthService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -15,12 +17,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -29,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SuppressWarnings("null")
 @WebMvcTest(value = AuthController.class, excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = JwtFilter.class))
+@Import(LoginAttemptLimiter.class) // real limiter; tests use distinct usernames since its state persists
 @DisplayName("AuthController Tests")
 class AuthControllerTest {
 
@@ -87,7 +93,7 @@ class AuthControllerTest {
                         request.setPassword("password");
 
                         when(authService.signup(any(SignupRequest.class)))
-                                        .thenThrow(new RuntimeException("Username already exists"));
+                                        .thenThrow(new BadRequestException("Username already exists"));
 
                         mockMvc.perform(post("/api/auth/signup")
                                         .with(csrf())
@@ -95,6 +101,28 @@ class AuthControllerTest {
                                         .content(objectMapper.writeValueAsString(request)))
                                         .andExpect(status().isBadRequest())
                                         .andExpect(jsonPath("$.error").value("Username already exists"));
+                }
+
+                @Test
+                @WithMockUser
+                @DisplayName("Should return 400 without calling the service for invalid input")
+                void signup_invalidInput() throws Exception {
+                        String[] bodies = {
+                                        "{\"username\":\"ok_user\",\"email\":\"a@b.com\",\"password\":\"short\"}",
+                                        "{\"username\":\"ok_user\",\"email\":\"not-an-email\",\"password\":\"password123\"}",
+                                        "{\"username\":\"x\",\"email\":\"a@b.com\",\"password\":\"password123\"}",
+                                        "{\"username\":\"bad name!\",\"email\":\"a@b.com\",\"password\":\"password123\"}",
+                                        "{\"email\":\"a@b.com\",\"password\":\"password123\"}",
+                        };
+                        for (String body : bodies) {
+                                mockMvc.perform(post("/api/auth/signup")
+                                                .with(csrf())
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(body))
+                                                .andExpect(status().isBadRequest())
+                                                .andExpect(jsonPath("$.error").exists());
+                        }
+                        verify(authService, never()).signup(any());
                 }
         }
 
@@ -138,7 +166,7 @@ class AuthControllerTest {
                         request.setPassword("wrong");
 
                         when(authService.login(any(LoginRequest.class)))
-                                        .thenThrow(new RuntimeException("Invalid credentials"));
+                                        .thenThrow(new BadRequestException("Invalid credentials"));
 
                         mockMvc.perform(post("/api/auth/login")
                                         .with(csrf())
@@ -146,6 +174,31 @@ class AuthControllerTest {
                                         .content(objectMapper.writeValueAsString(request)))
                                         .andExpect(status().isBadRequest())
                                         .andExpect(jsonPath("$.error").value("Invalid credentials"));
+                }
+
+                @Test
+                @WithMockUser
+                @DisplayName("Should return 429 after repeated failed logins for the same user")
+                void login_rateLimited() throws Exception {
+                        LoginRequest request = new LoginRequest();
+                        request.setUsername("victim");
+                        request.setPassword("guess");
+
+                        when(authService.login(any(LoginRequest.class)))
+                                        .thenThrow(new BadRequestException("Invalid credentials"));
+
+                        for (int i = 0; i < 5; i++) {
+                                mockMvc.perform(post("/api/auth/login")
+                                                .with(csrf())
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                                .andExpect(status().isBadRequest());
+                        }
+                        mockMvc.perform(post("/api/auth/login")
+                                        .with(csrf())
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
+                                        .andExpect(status().isTooManyRequests());
                 }
         }
 

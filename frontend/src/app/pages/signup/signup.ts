@@ -32,8 +32,8 @@ export class SignupComponent {
             return;
         }
 
-        if (this.password.length < 6) {
-            this.error = 'Password must be at least 6 characters';
+        if (this.password.length < 8) {
+            this.error = 'Password must be at least 8 characters';
             return;
         }
 

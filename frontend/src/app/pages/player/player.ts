@@ -29,8 +29,6 @@ export class PlayerComponent implements OnInit {
     ngOnInit(): void {
         this.route.params.subscribe(params => {
             this.videoId = +params['id'];
-            this.streamUrl = this.videoService.getStreamUrl(this.videoId);
-            this.captionsUrl = this.videoService.getCaptionsUrl(this.videoId);
             this.loadVideoInfo();
         });
     }
@@ -76,6 +74,10 @@ export class PlayerComponent implements OnInit {
         this.videoService.getVideo(this.videoId).subscribe({
             next: (video) => {
                 this.video = video;
+                // Signed URLs are set once; later metadata updates return fresh
+                // signatures, and swapping <video src> would restart playback
+                this.streamUrl = this.videoService.mediaUrl(video.streamUrl);
+                this.captionsUrl = video.captionsUrl ? this.videoService.mediaUrl(video.captionsUrl) : '';
                 this.loading = false;
             },
             error: () => {

@@ -19,11 +19,11 @@ export class VideoCardComponent {
     constructor(private videoService: VideoService) { }
 
     get showThumbnail(): boolean {
-        return this.video.status === 'READY' && this.video.hasThumbnail && !this.thumbnailFailed;
+        return this.video.status === 'READY' && !!this.video.thumbnailUrl && !this.thumbnailFailed;
     }
 
     get thumbnailUrl(): string {
-        return this.videoService.getThumbnailUrl(this.video.id);
+        return this.video.thumbnailUrl ? this.videoService.mediaUrl(this.video.thumbnailUrl) : '';
     }
 
     onThumbnailError(): void {

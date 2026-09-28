@@ -10,6 +10,8 @@ export const authGuard: CanActivateFn = () => {
         return true;
     }
 
+    // Clears a stale/expired token so the navbar doesn't show a logged-in user
+    authService.logout();
     router.navigate(['/login']);
     return false;
 };
