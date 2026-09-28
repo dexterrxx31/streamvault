@@ -48,11 +48,11 @@ public class AudioExtractionStep implements ProcessingStep {
             return;
         }
 
-        String baseName = stripExtension(ctx.getVideo().getFilename());
-        Path wavPath = ctx.getUploadDir().resolve(baseName + "_audio.wav");
+        Path wavPath = ctx.getUploadDir().resolve(MediaFiles.audioName(ctx.getVideo().getFilename()));
 
         List<String> command = List.of(
                 ffmpegPath, "-y",
+                "-protocol_whitelist", "file",
                 "-i", ctx.getVideoPath().toString(),
                 "-vn", "-ar", "16000", "-ac", "1", "-f", "wav",
                 wavPath.toString());
@@ -63,10 +63,5 @@ public class AudioExtractionStep implements ProcessingStep {
                     + result.stderr());
         }
         ctx.setAudioPath(wavPath);
-    }
-
-    private String stripExtension(String filename) {
-        int dot = filename.lastIndexOf('.');
-        return dot > 0 ? filename.substring(0, dot) : filename;
     }
 }

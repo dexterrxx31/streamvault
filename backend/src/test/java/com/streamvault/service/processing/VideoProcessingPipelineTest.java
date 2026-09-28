@@ -104,6 +104,64 @@ class VideoProcessingPipelineTest {
     }
 
     @Test
+    @DisplayName("Should not overwrite a title the user edited while processing ran")
+    void userEditDuringProcessingSurvives() throws Exception {
+        // The pipeline's working copy and the DB row are separate objects, as with JPA
+        Video dbRow = Video.builder()
+                .id(1L).title("Test").filename("v.mp4").status(VideoStatus.PROCESSING).build();
+        when(videoRepository.findById(1L)).thenReturn(Optional.of(video), Optional.of(dbRow));
+        doAnswer(inv -> {
+            dbRow.setTitle("Edited by user");   // user edit lands mid-run
+            ((ProcessingContext) inv.getArgument(0)).getVideo().setDurationSeconds(12.5);
+            return null;
+        }).when(requiredStep).process(any());
+
+        pipeline(List.of(requiredStep)).onVideoUploaded(new VideoUploadedEvent(1L));
+
+        assertEquals("Edited by user", dbRow.getTitle());
+        assertEquals(12.5, dbRow.getDurationSeconds());
+        assertEquals(VideoStatus.READY, dbRow.getStatus());
+    }
+
+    @Test
+    @DisplayName("Should not resurrect AI suggestions the user dismissed after the AI step")
+    void dismissedSuggestionsStayDismissed() throws Exception {
+        Video dbRow = Video.builder()
+                .id(1L).title("Test").filename("v.mp4").status(VideoStatus.PROCESSING).build();
+        when(videoRepository.findById(1L)).thenReturn(Optional.of(video), Optional.of(dbRow));
+        doAnswer(inv -> {
+            ((ProcessingContext) inv.getArgument(0)).getVideo().setAiTitle("AI title");
+            return null;
+        }).when(requiredStep).process(any());
+        doAnswer(inv -> {
+            dbRow.setAiTitle(null);   // user dismissed between steps
+            ((ProcessingContext) inv.getArgument(0)).getVideo().setSummary("summary");
+            return null;
+        }).when(optionalStep).process(any());
+
+        pipeline(List.of(requiredStep, optionalStep)).onVideoUploaded(new VideoUploadedEvent(1L));
+
+        assertEquals(null, dbRow.getAiTitle());
+        assertEquals("summary", dbRow.getSummary());
+    }
+
+    @Test
+    @DisplayName("Should stop and remove generated files when the video is deleted mid-run")
+    void deletedDuringProcessing() throws Exception {
+        when(videoRepository.findById(1L)).thenReturn(Optional.of(video), Optional.empty());
+        doAnswer(inv -> {
+            Files.write(tempDir.resolve("v_thumb.jpg"), new byte[] { 1 });
+            return null;
+        }).when(requiredStep).process(any());
+
+        pipeline(List.of(requiredStep, optionalStep)).onVideoUploaded(new VideoUploadedEvent(1L));
+
+        verify(optionalStep, never()).process(any());
+        verify(videoRepository, never()).save(any());
+        org.junit.jupiter.api.Assertions.assertFalse(Files.exists(tempDir.resolve("v_thumb.jpg")));
+    }
+
+    @Test
     @DisplayName("Should mark video FAILED when file is missing on disk")
     void fileMissing() throws Exception {
         video.setFilename("nonexistent.mp4");

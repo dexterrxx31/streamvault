@@ -49,8 +49,7 @@ public class TranscriptionStep implements ProcessingStep {
             Transcript transcript = maybeTranscript.get();
             ctx.setTranscript(transcript);
 
-            String baseName = stripExtension(ctx.getVideo().getFilename());
-            String captionsFilename = baseName + ".vtt";
+            String captionsFilename = MediaFiles.captionsName(ctx.getVideo().getFilename());
             Files.writeString(ctx.getUploadDir().resolve(captionsFilename),
                     transcript.toVtt(), StandardCharsets.UTF_8);
 
@@ -59,10 +58,5 @@ public class TranscriptionStep implements ProcessingStep {
         } finally {
             Files.deleteIfExists(wavPath);
         }
-    }
-
-    private String stripExtension(String filename) {
-        int dot = filename.lastIndexOf('.');
-        return dot > 0 ? filename.substring(0, dot) : filename;
     }
 }

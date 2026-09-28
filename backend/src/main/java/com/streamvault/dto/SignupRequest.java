@@ -1,8 +1,23 @@
 package com.streamvault.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
 public class SignupRequest {
+    @NotBlank
+    @Pattern(regexp = "^[A-Za-z0-9_.-]{3,50}$", message = "must be 3-50 letters, digits, '.', '_' or '-'")
     private String username;
+
+    @NotBlank
+    @Email
+    @Size(max = 255)
     private String email;
+
+    // BCrypt only uses the first 72 bytes; AuthService also enforces the byte length
+    @NotBlank
+    @Size(min = 8, max = 72)
     private String password;
 
     public String getUsername() {

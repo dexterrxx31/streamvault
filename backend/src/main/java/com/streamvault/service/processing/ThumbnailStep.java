@@ -18,7 +18,6 @@ import java.util.List;
 public class ThumbnailStep implements ProcessingStep {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(60);
-    private static final int FRAME_COUNT = 4;
 
     private final CommandRunner commandRunner;
 
@@ -41,22 +40,22 @@ public class ThumbnailStep implements ProcessingStep {
 
     @Override
     public void process(ProcessingContext ctx) throws Exception {
-        String baseName = stripExtension(ctx.getVideo().getFilename());
+        String videoFilename = ctx.getVideo().getFilename();
         double duration = ctx.getVideo().getDurationSeconds() != null
                 ? ctx.getVideo().getDurationSeconds()
                 : 0.0;
 
         // Poster thumbnail at 10% of duration (fallback: 1s into the video)
         double posterTime = duration > 0 ? duration * 0.1 : 1.0;
-        String thumbnailFilename = baseName + "_thumb.jpg";
+        String thumbnailFilename = MediaFiles.thumbnailName(videoFilename);
         Path thumbnailPath = ctx.getUploadDir().resolve(thumbnailFilename);
         extractFrame(ctx.getVideoPath(), posterTime, 640, thumbnailPath);
         ctx.getVideo().setThumbnailFilename(thumbnailFilename);
 
         // Evenly spaced frames for downstream AI analysis
-        for (int i = 1; i <= FRAME_COUNT; i++) {
-            double t = duration > 0 ? duration * i / (FRAME_COUNT + 1) : i;
-            Path framePath = ctx.getUploadDir().resolve(baseName + "_frame_" + i + ".jpg");
+        for (int i = 1; i <= MediaFiles.FRAME_COUNT; i++) {
+            double t = duration > 0 ? duration * i / (MediaFiles.FRAME_COUNT + 1) : i;
+            Path framePath = ctx.getUploadDir().resolve(MediaFiles.frameName(videoFilename, i));
             try {
                 extractFrame(ctx.getVideoPath(), t, 480, framePath);
                 ctx.getFrames().add(framePath);
@@ -69,6 +68,7 @@ public class ThumbnailStep implements ProcessingStep {
     private void extractFrame(Path video, double atSeconds, int width, Path output) throws Exception {
         List<String> command = List.of(
                 ffmpegPath, "-y",
+                "-protocol_whitelist", "file",
                 "-ss", String.format(java.util.Locale.ROOT, "%.3f", atSeconds),
                 "-i", video.toString(),
                 "-vframes", "1",
@@ -80,10 +80,5 @@ public class ThumbnailStep implements ProcessingStep {
             throw new RuntimeException("ffmpeg frame extraction failed (exit " + result.exitCode() + "): "
                     + result.stderr());
         }
-    }
-
-    private String stripExtension(String filename) {
-        int dot = filename.lastIndexOf('.');
-        return dot > 0 ? filename.substring(0, dot) : filename;
     }
 }

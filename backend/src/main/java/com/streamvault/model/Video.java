@@ -70,6 +70,10 @@ public class Video {
     @Column(columnDefinition = "TEXT")
     private String aiTags;
 
+    // Optimistic locking: the async pipeline and user edits never silently overwrite each other
+    @Version
+    private Long version;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -266,6 +270,14 @@ public class Video {
 
     public void setChapters(List<ChapterMarker> chapters) {
         this.chapters = chapters;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public User getUser() {

@@ -48,11 +48,13 @@ describe('PlayerComponent', () => {
                 aiTags: [],
                 summary: null,
                 chapters: [],
-                hasCaptions: false
+                hasCaptions: false,
+                streamUrl: '/api/videos/stream/1?exp=1&sig=s',
+                thumbnailUrl: null,
+                captionsUrl: null
             })),
             updateVideo: vi.fn(),
-            getStreamUrl: vi.fn().mockReturnValue('http://stream/1'),
-            getCaptionsUrl: vi.fn().mockReturnValue('http://captions/1')
+            mediaUrl: vi.fn((path: string) => 'http://api' + path)
         };
 
         routerSpy = {
@@ -81,7 +83,8 @@ describe('PlayerComponent', () => {
         expect(component).toBeTruthy();
         expect(component.videoId).toBe(1);
         expect(component.video?.title).toBe('Test Video');
-        expect(component.streamUrl).toBe('http://stream/1');
+        expect(component.streamUrl).toBe('http://api/api/videos/stream/1?exp=1&sig=s');
+        expect(component.captionsUrl).toBe('');
     });
 
     it('should navigate back to dashboard', () => {
@@ -157,7 +160,10 @@ describe('PlayerComponent', () => {
                 { startSeconds: 0, title: 'Intro' },
                 { startSeconds: 65, title: 'Main topic' }
             ],
-            hasCaptions: true
+            hasCaptions: true,
+            streamUrl: '/api/videos/stream/1?exp=1&sig=s',
+            thumbnailUrl: null,
+            captionsUrl: '/api/videos/1/captions.vtt?exp=1&sig=c'
         };
 
         beforeEach(() => {
@@ -168,7 +174,7 @@ describe('PlayerComponent', () => {
             fixture.detectChanges();
             const track = fixture.nativeElement.querySelector('track');
             expect(track).toBeTruthy();
-            expect(track.getAttribute('src')).toBe('http://captions/1');
+            expect(track.getAttribute('src')).toBe('http://api/api/videos/1/captions.vtt?exp=1&sig=c');
         });
 
         it('should render summary and clickable chapters', () => {

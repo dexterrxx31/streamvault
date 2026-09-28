@@ -1,18 +1,24 @@
 package com.streamvault.service;
 
 import com.streamvault.dto.VideoResponse;
+import com.streamvault.exception.BadRequestException;
+import com.streamvault.exception.NotFoundException;
+import com.streamvault.exception.ServiceUnavailableException;
 import com.streamvault.model.User;
 import com.streamvault.model.Video;
 import com.streamvault.repository.VideoRepository;
+import com.streamvault.security.MediaUrlSigner;
 import com.streamvault.service.processing.VideoUploadedEvent;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +44,9 @@ class VideoServiceTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Spy
+    private MediaUrlSigner mediaUrlSigner = new MediaUrlSigner("test-media-secret-that-is-at-least-32-bytes", 3600);
 
     @InjectMocks
     private VideoService videoService;
@@ -71,7 +80,6 @@ class VideoServiceTest {
         void uploadVideo_success() throws IOException {
             MultipartFile file = mock(MultipartFile.class);
             when(file.getOriginalFilename()).thenReturn("test_video.mp4");
-            when(file.getContentType()).thenReturn("video/mp4");
             when(file.getSize()).thenReturn(1024L);
             when(file.getInputStream()).thenReturn(new ByteArrayInputStream("fake video data".getBytes()));
 
@@ -100,31 +108,86 @@ class VideoServiceTest {
         }
 
         @Test
-        @DisplayName("Should upload video with no extension")
-        void uploadVideo_noExtension() throws IOException {
+        @DisplayName("Should reject a file with no extension")
+        void uploadVideo_noExtension() {
             MultipartFile file = mock(MultipartFile.class);
             when(file.getOriginalFilename()).thenReturn("videofile");
-            when(file.getContentType()).thenReturn("video/mp4");
-            when(file.getSize()).thenReturn(512L);
+
+            assertThrows(BadRequestException.class,
+                    () -> videoService.uploadVideo(file, "No Extension Video", testUser));
+            verify(videoRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should reject non-video files even when the client claims a video content type")
+        void uploadVideo_rejectsHtml() {
+            MultipartFile file = mock(MultipartFile.class);
+            when(file.getOriginalFilename()).thenReturn("evil.html");
+
+            assertThrows(BadRequestException.class,
+                    () -> videoService.uploadVideo(file, "Evil", testUser));
+            verify(videoRepository, never()).save(any());
+            assertEquals(0, tempDir.toFile().list().length);
+        }
+
+        @Test
+        @DisplayName("Should store a server-derived content type, ignoring the client's")
+        void uploadVideo_ignoresClientContentType() throws IOException {
+            MultipartFile file = mock(MultipartFile.class);
+            when(file.getOriginalFilename()).thenReturn("clip.WEBM");
+            when(file.getSize()).thenReturn(10L);
             when(file.getInputStream()).thenReturn(new ByteArrayInputStream("data".getBytes()));
+            when(videoRepository.save(any(Video.class))).thenAnswer(inv -> {
+                Video v = inv.getArgument(0);
+                v.setId(5L);
+                return v;
+            });
 
-            Video savedVideo = Video.builder()
-                    .id(2L)
-                    .title("No Extension Video")
-                    .filename("stored")
-                    .contentType("video/mp4")
-                    .size(512L)
-                    .uploadDate(LocalDateTime.now())
-                    .user(testUser)
-                    .build();
+            videoService.uploadVideo(file, "Clip", testUser);
 
-            when(videoRepository.save(any(Video.class))).thenReturn(savedVideo);
+            org.mockito.ArgumentCaptor<Video> captor = org.mockito.ArgumentCaptor.forClass(Video.class);
+            verify(videoRepository).save(captor.capture());
+            assertEquals("video/webm", captor.getValue().getContentType());
+            assertTrue(captor.getValue().getFilename().endsWith(".webm"));
+        }
 
-            VideoResponse response = videoService.uploadVideo(file, "No Extension Video", testUser);
+        @Test
+        @DisplayName("Should reject a blank title")
+        void uploadVideo_blankTitle() {
+            MultipartFile file = mock(MultipartFile.class);
 
-            assertNotNull(response);
-            assertEquals("No Extension Video", response.getTitle());
-            verify(videoRepository).save(any(Video.class));
+            assertThrows(BadRequestException.class, () -> videoService.uploadVideo(file, "  ", testUser));
+        }
+
+        @Test
+        @DisplayName("Should undo the upload and throw 503 when the processing queue is full")
+        void uploadVideo_queueFull() throws IOException {
+            MultipartFile file = mock(MultipartFile.class);
+            when(file.getOriginalFilename()).thenReturn("test.mp4");
+            when(file.getSize()).thenReturn(10L);
+            when(file.getInputStream()).thenReturn(new ByteArrayInputStream("data".getBytes()));
+            Video saved = Video.builder().id(7L).title("t").filename("x.mp4").user(testUser).build();
+            when(videoRepository.save(any(Video.class))).thenReturn(saved);
+            doThrow(new TaskRejectedException("full")).when(eventPublisher).publishEvent(any(VideoUploadedEvent.class));
+
+            assertThrows(ServiceUnavailableException.class,
+                    () -> videoService.uploadVideo(file, "t", testUser));
+
+            verify(videoRepository).delete(saved);
+            assertEquals(0, tempDir.toFile().list().length);
+        }
+
+        @Test
+        @DisplayName("Should delete the stored file when the DB save fails")
+        void uploadVideo_saveFails() throws IOException {
+            MultipartFile file = mock(MultipartFile.class);
+            when(file.getOriginalFilename()).thenReturn("test.mp4");
+            when(file.getInputStream()).thenReturn(new ByteArrayInputStream("data".getBytes()));
+            when(videoRepository.save(any(Video.class))).thenThrow(new RuntimeException("db down"));
+
+            assertThrows(RuntimeException.class, () -> videoService.uploadVideo(file, "t", testUser));
+
+            assertEquals(0, tempDir.toFile().list().length);
         }
 
         @Test
@@ -285,9 +348,10 @@ class VideoServiceTest {
 
             when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
 
-            RuntimeException exception = assertThrows(RuntimeException.class,
+            // Someone else's video is indistinguishable from a missing one
+            RuntimeException exception = assertThrows(NotFoundException.class,
                     () -> videoService.deleteVideo(1L, 999L));
-            assertEquals("Not authorized to delete this video", exception.getMessage());
+            assertEquals("Video not found", exception.getMessage());
 
             verify(videoRepository, never()).delete(any());
         }
@@ -309,6 +373,8 @@ class VideoServiceTest {
             Path videoFile = tempDir.resolve("abc.mp4");
             Path thumbFile = tempDir.resolve("abc_thumb.jpg");
             Path frameFile = tempDir.resolve("abc_frame_1.jpg");
+            Path audioFile = tempDir.resolve("abc_audio.wav");
+            Files.write(audioFile, "wav".getBytes());
             Files.write(videoFile, "content".getBytes());
             Files.write(thumbFile, "thumb".getBytes());
             Files.write(frameFile, "frame".getBytes());
@@ -326,6 +392,7 @@ class VideoServiceTest {
             assertFalse(Files.exists(videoFile));
             assertFalse(Files.exists(thumbFile));
             assertFalse(Files.exists(frameFile));
+            assertFalse(Files.exists(audioFile));
         }
     }
 
@@ -346,6 +413,16 @@ class VideoServiceTest {
             VideoResponse response = videoService.getUserVideo(1L, 1L);
 
             assertEquals("Mine", response.getTitle());
+            // Owner receives a verifiable signed stream URL; no thumbnail/captions yet
+            assertTrue(response.getStreamUrl().startsWith("/api/videos/stream/1?exp="));
+            String query = response.getStreamUrl().substring(response.getStreamUrl().indexOf('?') + 1);
+            long exp = Long.parseLong(query.split("&")[0].substring(4));
+            String sig = query.split("&")[1].substring(4);
+            assertTrue(videoService.isValidMediaSignature(1L, VideoService.KIND_STREAM, exp, sig));
+            assertFalse(videoService.isValidMediaSignature(2L, VideoService.KIND_STREAM, exp, sig));
+            assertFalse(videoService.isValidMediaSignature(1L, VideoService.KIND_CAPTIONS, exp, sig));
+            assertNull(response.getThumbnailUrl());
+            assertNull(response.getCaptionsUrl());
         }
 
         @Test
@@ -358,9 +435,9 @@ class VideoServiceTest {
 
             when(videoRepository.findById(1L)).thenReturn(Optional.of(video));
 
-            RuntimeException exception = assertThrows(RuntimeException.class,
+            RuntimeException exception = assertThrows(NotFoundException.class,
                     () -> videoService.getUserVideo(1L, 999L));
-            assertEquals("Not authorized to view this video", exception.getMessage());
+            assertEquals("Video not found", exception.getMessage());
         }
     }
 

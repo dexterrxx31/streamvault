@@ -26,15 +26,29 @@ export class AuthService {
     }
 
     private loadStoredUser(): void {
-        const token = localStorage.getItem('sv_token');
         const user = localStorage.getItem('sv_user');
-        if (token && user) {
+        if (this.isLoggedIn && user) {
             this.currentUserSubject.next(JSON.parse(user));
+        } else {
+            this.logout();
         }
     }
 
+    /** True only for a present, unexpired token. */
     get isLoggedIn(): boolean {
-        return !!localStorage.getItem('sv_token');
+        const token = localStorage.getItem('sv_token');
+        return !!token && !AuthService.isExpired(token);
+    }
+
+    /** Reads the JWT `exp` claim (signature is verified server-side, not here). */
+    private static isExpired(token: string): boolean {
+        try {
+            const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const { exp } = JSON.parse(atob(payload));
+            return typeof exp !== 'number' || exp * 1000 <= Date.now();
+        } catch {
+            return true;
+        }
     }
 
     get token(): string | null {

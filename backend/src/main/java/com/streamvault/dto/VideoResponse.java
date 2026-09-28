@@ -25,6 +25,10 @@ public class VideoResponse {
     private String summary;
     private List<ChapterResponse> chapters = new ArrayList<>();
     private boolean hasCaptions;
+    // Pre-signed, relative media URLs — only ever returned to the video's owner
+    private String streamUrl;
+    private String thumbnailUrl;
+    private String captionsUrl;
 
     public VideoResponse() {
     }
@@ -197,6 +201,30 @@ public class VideoResponse {
         this.hasCaptions = hasCaptions;
     }
 
+    public String getStreamUrl() {
+        return streamUrl;
+    }
+
+    public void setStreamUrl(String streamUrl) {
+        this.streamUrl = streamUrl;
+    }
+
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
+    }
+
+    public void setThumbnailUrl(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl;
+    }
+
+    public String getCaptionsUrl() {
+        return captionsUrl;
+    }
+
+    public void setCaptionsUrl(String captionsUrl) {
+        this.captionsUrl = captionsUrl;
+    }
+
     public static VideoResponseBuilder builder() {
         return new VideoResponseBuilder();
     }
@@ -220,6 +248,9 @@ public class VideoResponse {
         private String summary;
         private List<ChapterResponse> chapters;
         private boolean hasCaptions;
+        private String streamUrl;
+        private String thumbnailUrl;
+        private String captionsUrl;
 
         public VideoResponseBuilder id(Long id) {
             this.id = id;
@@ -311,10 +342,29 @@ public class VideoResponse {
             return this;
         }
 
+        public VideoResponseBuilder streamUrl(String streamUrl) {
+            this.streamUrl = streamUrl;
+            return this;
+        }
+
+        public VideoResponseBuilder thumbnailUrl(String thumbnailUrl) {
+            this.thumbnailUrl = thumbnailUrl;
+            return this;
+        }
+
+        public VideoResponseBuilder captionsUrl(String captionsUrl) {
+            this.captionsUrl = captionsUrl;
+            return this;
+        }
+
         public VideoResponse build() {
-            return new VideoResponse(id, title, contentType, size, uploadDate, durationSeconds, width, height,
-                    description, tags, status, hasThumbnail, aiTitle, aiDescription, aiTags,
+            VideoResponse response = new VideoResponse(id, title, contentType, size, uploadDate, durationSeconds,
+                    width, height, description, tags, status, hasThumbnail, aiTitle, aiDescription, aiTags,
                     summary, chapters, hasCaptions);
+            response.setStreamUrl(streamUrl);
+            response.setThumbnailUrl(thumbnailUrl);
+            response.setCaptionsUrl(captionsUrl);
+            return response;
         }
     }
 }
