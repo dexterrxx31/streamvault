@@ -158,6 +158,23 @@ The project maintains high code quality through rigorous testing in both tiers.
 
 ---
 
+## 🔄 CI & Dependency Updates
+
+- **CI** (`.github/workflows/ci.yml`): every push and pull request to `main` builds and tests the backend (JDK 23, Maven) and the frontend (Node 22: `npm test`, then `npm run build`).
+- **Dependabot** (`.github/dependabot.yml`) opens update PRs every Monday for:
+
+  | Ecosystem | Location | Grouped updates |
+  | :--- | :--- | :--- |
+  | Maven | `backend/` | Spring Boot, jjwt, Flyway |
+  | npm | `frontend/` | Angular packages, test tooling (Vitest, AnalogJS, jsdom) |
+  | GitHub Actions | `.github/workflows/` | all actions |
+  | Docker Compose | `docker-compose.yml` | Postgres image |
+
+  Major upgrades of Spring Boot, Angular, and Postgres are ignored on purpose. They need a deliberate migration (`ng update`, `pg_upgrade`), not a version bump. Every Dependabot PR runs through CI like any other change.
+- **Security updates**: enable *Settings → Code security → Dependabot security updates* on GitHub to get immediate PRs for vulnerable dependencies, in addition to the weekly schedule.
+
+---
+
 ## 🎨 Design Philosophy
 StreamVault prioritizes **Performance** and **Aesthetics**. The UI uses a minimalist dark theme combined with vibrant accent colors and Gaussian blur effects to create a "premium" feel that sets it apart from standard streaming applications.
 
